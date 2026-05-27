@@ -4,6 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>나의 독서 기록</title>
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#8b6f47" />
+  <!-- iOS 홈 화면 추가 지원 -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="독서 기록" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -218,5 +226,14 @@
   <div id="toast" class="toast hidden"></div>
 
   <script src="app.js"></script>
+  <!-- Service Worker 등록 -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .catch((err) => console.warn('SW 등록 실패:', err));
+      });
+    }
+  </script>
 </body>
 </html>

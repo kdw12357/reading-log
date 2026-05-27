@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- 배경: 베이지/크림 (#faf6f0) — maskable 대응을 위해 전체 채움 -->
+  <rect width="512" height="512" fill="#faf6f0"/>
+
+  <!-- 책 그림자 (살짝 오른쪽 아래로) -->
+  <rect x="162" y="112" width="208" height="296" rx="6" fill="#d4b896" opacity="0.5"/>
+
+  <!-- 책 등(spine): 짙은 갈색 -->
+  <rect x="152" y="104" width="62" height="296" rx="6" fill="#6b4f30"/>
+
+  <!-- 책 표지: 메인 갈색 -->
+  <rect x="208" y="104" width="148" height="296" rx="6" fill="#8b6f47"/>
+
+  <!-- 페이지 엣지 (우측, 밝은 베이지) -->
+  <rect x="352" y="110" width="10" height="284" rx="3" fill="#e8ddd0"/>
+
+  <!-- 장식선 1 (제목 느낌, 밝은 아이보리) -->
+  <rect x="228" y="196" width="110" height="13" rx="6" fill="#faf6f0" opacity="0.75"/>
+
+  <!-- 장식선 2 (부제목) -->
+  <rect x="228" y="224" width="84" height="9" rx="4" fill="#faf6f0" opacity="0.5"/>
+
+  <!-- 장식선 3 (저자) -->
+  <rect x="228" y="247" width="96" height="9" rx="4" fill="#faf6f0" opacity="0.5"/>
+
+  <!-- 하단 구분선 -->
+  <rect x="228" y="340" width="110" height="4" rx="2" fill="#faf6f0" opacity="0.35"/>
+
+  <!-- 북마크 리본 (책 등 상단) -->
+  <polygon points="174,104 194,104 194,148 184,138 174,148" fill="#c0392b"/>
+</svg>
