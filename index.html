@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>나의 독서 기록</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- 헤더 -->
+  <header class="site-header">
+    <div class="header-top">
+      <h1 class="site-title">
+        <span class="title-icon">📚</span> 나의 독서 기록
+      </h1>
+      <div class="header-actions">
+        <button class="btn btn-ghost btn-sm" id="btn-export">JSON 내보내기</button>
+        <button class="btn btn-ghost btn-sm" id="btn-import-trigger">JSON 가져오기</button>
+        <input type="file" id="import-file-input" accept=".json" hidden />
+      </div>
+    </div>
+
+    <div class="header-bottom">
+      <nav class="main-nav">
+        <a href="#gallery" class="nav-link" id="nav-gallery">갤러리</a>
+        <a href="#form" class="nav-link" id="nav-form">책 등록</a>
+      </nav>
+      <div class="search-bar">
+        <input
+          type="text"
+          id="kyobo-search-input"
+          class="search-input"
+          placeholder="교보문고에서 책 검색..."
+        />
+        <button class="btn btn-accent btn-sm" id="btn-kyobo-search">검색</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 콘텐츠 -->
+  <main class="main-content">
+
+    <!-- 갤러리 뷰 -->
+    <section id="view-gallery" class="view active">
+      <div id="gallery-container">
+        <!-- JS로 렌더링 -->
+      </div>
+      <div id="gallery-empty" class="empty-state hidden">
+        <div class="empty-icon">📖</div>
+        <p class="empty-title">아직 등록된 책이 없어요</p>
+        <p class="empty-desc">첫 번째 책을 등록해보세요!</p>
+        <a href="#form" class="btn btn-accent">책 등록하기</a>
+      </div>
+    </section>
+
+    <!-- 책 등록/수정 폼 -->
+    <section id="view-form" class="view hidden">
+      <div class="form-card">
+        <h2 class="form-title" id="form-title">새 책 등록</h2>
+        <form id="book-form" novalidate>
+          <input type="hidden" id="book-id" />
+
+          <!-- 표지 이미지 -->
+          <div class="form-group cover-upload-group">
+            <label class="form-label">책 표지 이미지</label>
+            <div class="cover-upload-area" id="cover-upload-area">
+              <img id="cover-preview" src="" alt="표지 미리보기" class="cover-preview hidden" />
+              <div id="cover-placeholder" class="cover-placeholder">
+                <span class="upload-icon">🖼️</span>
+                <span class="upload-text">클릭하여 이미지 선택</span>
+                <span class="upload-hint">JPG, PNG, WEBP 등</span>
+              </div>
+              <input type="file" id="cover-input" accept="image/*" hidden />
+            </div>
+            <button type="button" class="btn btn-ghost btn-xs remove-cover hidden" id="btn-remove-cover">
+              이미지 제거
+            </button>
+          </div>
+
+          <!-- 책 정보 -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="input-title">책 이름 <span class="required">*</span></label>
+              <input type="text" id="input-title" class="form-input" placeholder="책 이름을 입력하세요" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="input-author">저자 <span class="required">*</span></label>
+              <input type="text" id="input-author" class="form-input" placeholder="저자명" required />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="input-publisher">출판사</label>
+              <input type="text" id="input-publisher" class="form-input" placeholder="출판사명" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="input-genre">장르</label>
+              <select id="input-genre" class="form-input form-select">
+                <option value="소설">소설</option>
+                <option value="에세이">에세이</option>
+                <option value="자기계발">자기계발</option>
+                <option value="인문">인문</option>
+                <option value="경제경영">경제경영</option>
+                <option value="과학">과학</option>
+                <option value="기타">기타</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="input-start-date">독서 시작일</label>
+              <input type="date" id="input-start-date" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="input-end-date">독서 종료일</label>
+              <input type="date" id="input-end-date" class="form-input" />
+            </div>
+          </div>
+
+          <!-- 소장 형태 -->
+          <div class="form-group">
+            <label class="form-label">소장 형태</label>
+            <div class="radio-group">
+              <label class="radio-label">
+                <input type="radio" name="ownership" value="소장" checked />
+                <span class="radio-btn"></span>
+                소장
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="ownership" value="대여" />
+                <span class="radio-btn"></span>
+                대여
+              </label>
+            </div>
+          </div>
+
+          <!-- 책 형태 -->
+          <div class="form-group">
+            <label class="form-label">책 형태</label>
+            <div class="radio-group">
+              <label class="radio-label">
+                <input type="radio" name="bookType" value="종이책" checked />
+                <span class="radio-btn"></span>
+                종이책
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="bookType" value="EBOOK" />
+                <span class="radio-btn"></span>
+                EBOOK
+              </label>
+            </div>
+          </div>
+
+          <!-- 독후감 -->
+          <div class="form-group">
+            <label class="form-label" for="input-review">독후감</label>
+            <textarea
+              id="input-review"
+              class="form-input form-textarea"
+              placeholder="이 책에 대한 생각을 자유롭게 적어보세요..."
+              rows="8"
+            ></textarea>
+          </div>
+
+          <!-- 폼 버튼 -->
+          <div class="form-actions">
+            <button type="submit" class="btn btn-accent" id="btn-submit-form">등록하기</button>
+            <button type="button" class="btn btn-ghost" id="btn-reset-form">초기화</button>
+            <button type="button" class="btn btn-ghost" id="btn-cancel">취소</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- 책 상세 페이지 -->
+    <section id="view-detail" class="view hidden">
+      <div class="detail-card">
+        <button class="btn btn-ghost btn-sm back-btn" id="btn-back">← 갤러리로</button>
+        <div class="detail-layout">
+          <div class="detail-cover-col">
+            <img id="detail-cover" src="" alt="책 표지" class="detail-cover hidden" />
+            <div id="detail-cover-placeholder" class="detail-cover-placeholder hidden">
+              <span>📗</span>
+            </div>
+          </div>
+          <div class="detail-info-col">
+            <h2 class="detail-title" id="detail-title"></h2>
+            <table class="detail-table">
+              <tbody>
+                <tr><th>저자</th><td id="detail-author"></td></tr>
+                <tr><th>출판사</th><td id="detail-publisher"></td></tr>
+                <tr><th>장르</th><td id="detail-genre"></td></tr>
+                <tr><th>독서 기간</th><td id="detail-period"></td></tr>
+                <tr><th>소장 형태</th><td id="detail-ownership"></td></tr>
+                <tr><th>책 형태</th><td id="detail-book-type"></td></tr>
+              </tbody>
+            </table>
+            <div class="detail-actions">
+              <button class="btn btn-accent" id="btn-edit">수정</button>
+              <button class="btn btn-danger" id="btn-delete">삭제</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-review-section" id="detail-review-section">
+          <h3 class="review-heading">독후감</h3>
+          <div class="review-body" id="detail-review"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 토스트 알림 -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
