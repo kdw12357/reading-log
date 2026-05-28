@@ -81,6 +81,7 @@
                 <tr><th>독서 기간</th><td id="detail-period"></td></tr>
                 <tr><th>소장 형태</th><td id="detail-ownership"></td></tr>
                 <tr><th>책 형태</th><td id="detail-book-type"></td></tr>
+                <tr id="detail-rating-row" class="hidden"><th>별점</th><td id="detail-rating" class="detail-rating"></td></tr>
               </tbody>
             </table>
             <div class="detail-actions">
@@ -212,6 +213,19 @@
               <span class="radio-btn"></span>
               EBOOK
             </label>
+          </div>
+        </div>
+
+        <!-- 별점 -->
+        <div class="form-group">
+          <label class="form-label">별점</label>
+          <div class="rating-input" id="rating-input">
+            <span class="star-btn" data-value="1">★</span>
+            <span class="star-btn" data-value="2">★</span>
+            <span class="star-btn" data-value="3">★</span>
+            <span class="star-btn" data-value="4">★</span>
+            <span class="star-btn" data-value="5">★</span>
+            <button type="button" class="btn btn-ghost btn-xs" id="btn-clear-rating">초기화</button>
           </div>
         </div>
 

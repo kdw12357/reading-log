@@ -69,6 +69,26 @@ function closeFormModal() {
 }
 
 /* ===== Gallery View ===== */
+function renderYearStats(books) {
+  const genreCounts = {};
+  books.forEach(book => {
+    const g = book.genre || '기타';
+    genreCounts[g] = (genreCounts[g] || 0) + 1;
+  });
+  const sorted = Object.entries(genreCounts).sort((a, b) => b[1] - a[1]);
+  const max = sorted[0]?.[1] || 1;
+  const bars = sorted.map(([genre, count]) => {
+    const pct = Math.round((count / max) * 100);
+    return `
+      <div class="stat-genre-row">
+        <span class="stat-genre-label">${escapeHtml(genre)}</span>
+        <div class="stat-bar-wrap"><div class="stat-bar" style="width:${pct}%"></div></div>
+        <span class="stat-genre-count">${count}권</span>
+      </div>`;
+  }).join('');
+  return `<div class="year-stats"><div class="stat-genres">${bars}</div></div>`;
+}
+
 function getBookYear(book) {
   const d = book.endDate || book.startDate;
   return d ? d.slice(0, 4) : '날짜 미입력';
@@ -105,12 +125,14 @@ function renderGallery() {
   container.innerHTML = sortedYears.map(year => {
     const yearBooks = groups[year];
     const cards = yearBooks.map(book => bookCard(book)).join('');
+    const statsHtml = year !== '날짜 미입력' ? renderYearStats(yearBooks) : '';
     return `
       <div class="year-section">
         <h2 class="year-heading">
           ${escapeHtml(year)}년
           <span class="book-count">${yearBooks.length}권</span>
         </h2>
+        ${statsHtml}
         <div class="book-grid">${cards}</div>
       </div>
     `;
@@ -129,6 +151,7 @@ function bookCard(book) {
         <div class="book-card-title">${escapeHtml(book.title)}</div>
         <div class="book-card-author">${escapeHtml(book.author || '')}</div>
         ${book.genre ? `<span class="book-card-genre">${escapeHtml(book.genre)}</span>` : ''}
+        ${book.rating ? `<div class="book-card-rating">${'★'.repeat(book.rating)}${'☆'.repeat(5 - book.rating)}</div>` : ''}
       </div>
     </div>
   `;
@@ -136,6 +159,14 @@ function bookCard(book) {
 
 /* ===== Form View ===== */
 let currentCoverBase64 = null;
+let currentRating = null;
+
+function updateRatingDisplay(hoverVal) {
+  const val = hoverVal !== undefined ? hoverVal : (currentRating || 0);
+  document.querySelectorAll('#rating-input .star-btn').forEach(star => {
+    star.classList.toggle('filled', Number(star.dataset.value) <= val);
+  });
+}
 
 function renderForm(editId) {
   currentCoverBase64 = null;
@@ -148,6 +179,8 @@ function renderForm(editId) {
   document.getElementById('book-id').value = '';
   hideCoverPreview();
   resetModalSearch();
+  currentRating = null;
+  updateRatingDisplay();
 
   if (editId) {
     const books = loadBooks();
@@ -169,6 +202,9 @@ function renderForm(editId) {
 
     form.querySelector(`input[name="ownership"][value="${book.ownership}"]`).checked = true;
     form.querySelector(`input[name="bookType"][value="${book.bookType}"]`).checked = true;
+
+    currentRating = book.rating || null;
+    updateRatingDisplay();
 
     if (book.coverImage) {
       currentCoverBase64 = book.coverImage;
@@ -241,6 +277,15 @@ function renderDetail(id) {
     reviewSection.classList.remove('hidden');
   } else {
     reviewSection.classList.add('hidden');
+  }
+
+  const ratingRow = document.getElementById('detail-rating-row');
+  const ratingEl = document.getElementById('detail-rating');
+  if (book.rating) {
+    ratingEl.textContent = '★'.repeat(book.rating) + '☆'.repeat(5 - book.rating);
+    ratingRow.classList.remove('hidden');
+  } else {
+    ratingRow.classList.add('hidden');
   }
 
   document.getElementById('btn-edit').dataset.id = id;
@@ -486,6 +531,7 @@ function bindEvents() {
       bookType: document.querySelector('input[name="bookType"]:checked').value,
       review: document.getElementById('input-review').value,
       coverImage: currentCoverBase64 || null,
+      rating: currentRating || null,
     };
 
     if (editId) {
@@ -512,6 +558,8 @@ function bindEvents() {
   document.getElementById('btn-reset-form').addEventListener('click', () => {
     document.getElementById('book-form').reset();
     hideCoverPreview();
+    currentRating = null;
+    updateRatingDisplay();
   });
 
   // 모달 닫기 (✕ 버튼, 취소 버튼, 배경 클릭)
@@ -546,6 +594,25 @@ function bindEvents() {
   // 뒤로 가기
   document.getElementById('btn-back').addEventListener('click', () => {
     location.hash = '#gallery';
+  });
+
+  // 별점 입력
+  const ratingInput = document.getElementById('rating-input');
+  ratingInput.addEventListener('mouseover', (e) => {
+    const star = e.target.closest('.star-btn');
+    if (star) updateRatingDisplay(Number(star.dataset.value));
+  });
+  ratingInput.addEventListener('mouseleave', () => updateRatingDisplay());
+  ratingInput.addEventListener('click', (e) => {
+    const star = e.target.closest('.star-btn');
+    if (!star) return;
+    const val = Number(star.dataset.value);
+    currentRating = currentRating === val ? null : val;
+    updateRatingDisplay();
+  });
+  document.getElementById('btn-clear-rating').addEventListener('click', () => {
+    currentRating = null;
+    updateRatingDisplay();
   });
 
   // 모달 내 책 검색
