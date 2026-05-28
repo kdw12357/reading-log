@@ -147,6 +147,7 @@ function renderForm(editId) {
   form.reset();
   document.getElementById('book-id').value = '';
   hideCoverPreview();
+  resetModalSearch();
 
   if (editId) {
     const books = loadBooks();
@@ -303,6 +304,115 @@ function today() {
   return new Date().toISOString().slice(0, 10).replace(/-/g, '');
 }
 
+/* ===== 책 검색 (네이버 프록시) ===== */
+const SEARCH_PROXY = 'https://reading-proxy.kdw12357.workers.dev/';
+
+function stripHtml(str) {
+  return str ? str.replace(/<[^>]*>/g, '') : '';
+}
+
+function formatAuthor(str) {
+  return str ? str.replace(/\^/g, ', ') : '';
+}
+
+async function searchBooks() {
+  const keyword = document.getElementById('modal-search-input').value.trim();
+  if (!keyword) {
+    showToast('검색어를 입력해주세요.');
+    return;
+  }
+
+  const statusEl = document.getElementById('modal-search-status');
+  const resultsEl = document.getElementById('modal-search-results');
+
+  statusEl.textContent = '검색 중...';
+  statusEl.classList.remove('hidden');
+  resultsEl.classList.add('hidden');
+  resultsEl.innerHTML = '';
+
+  try {
+    const res = await fetch(`${SEARCH_PROXY}?query=${encodeURIComponent(keyword)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const items = data.items || [];
+
+    if (items.length === 0) {
+      statusEl.textContent = '검색 결과가 없습니다.';
+      return;
+    }
+
+    statusEl.classList.add('hidden');
+    renderSearchResults(items);
+  } catch (err) {
+    statusEl.textContent = '검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+  }
+}
+
+function renderSearchResults(items) {
+  const resultsEl = document.getElementById('modal-search-results');
+  resultsEl.innerHTML = items.map((item, idx) => {
+    const title = escapeHtml(stripHtml(item.title));
+    const author = escapeHtml(formatAuthor(stripHtml(item.author)));
+    const publisher = escapeHtml(item.publisher || '');
+    const imgSrc = escapeHtml(item.image || '');
+    return `
+      <div class="search-result-item" data-idx="${idx}" role="button" tabindex="0">
+        <div class="result-cover-wrap">
+          ${imgSrc
+            ? `<img src="${imgSrc}" alt="${title}" class="result-cover" />`
+            : `<div class="result-cover-placeholder">📗</div>`}
+        </div>
+        <div class="result-info">
+          <div class="result-title">${title}</div>
+          <div class="result-author">${author}</div>
+          <div class="result-publisher">${publisher}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  resultsEl._items = items;
+  resultsEl.classList.remove('hidden');
+}
+
+async function selectSearchResult(item) {
+  document.getElementById('input-title').value = stripHtml(item.title);
+  document.getElementById('input-author').value = formatAuthor(stripHtml(item.author));
+  document.getElementById('input-publisher').value = item.publisher || '';
+
+  const statusEl = document.getElementById('modal-search-status');
+  const resultsEl = document.getElementById('modal-search-results');
+  statusEl.classList.add('hidden');
+  resultsEl.classList.add('hidden');
+  resultsEl.innerHTML = '';
+  document.getElementById('modal-search-input').value = '';
+
+  if (item.image) {
+    try {
+      const res = await fetch(item.image);
+      const blob = await res.blob();
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        currentCoverBase64 = e.target.result;
+        showCoverPreview(currentCoverBase64);
+      };
+      reader.readAsDataURL(blob);
+    } catch {
+      currentCoverBase64 = item.image;
+      showCoverPreview(item.image);
+    }
+  }
+}
+
+function resetModalSearch() {
+  document.getElementById('modal-search-input').value = '';
+  const statusEl = document.getElementById('modal-search-status');
+  const resultsEl = document.getElementById('modal-search-results');
+  statusEl.classList.add('hidden');
+  resultsEl.classList.add('hidden');
+  resultsEl.innerHTML = '';
+}
+
 /* ===== 유틸 ===== */
 function escapeHtml(str) {
   if (!str) return '';
@@ -436,6 +546,28 @@ function bindEvents() {
   // 뒤로 가기
   document.getElementById('btn-back').addEventListener('click', () => {
     location.hash = '#gallery';
+  });
+
+  // 모달 내 책 검색
+  document.getElementById('btn-modal-search').addEventListener('click', searchBooks);
+  document.getElementById('modal-search-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); searchBooks(); }
+  });
+  document.getElementById('modal-search-results').addEventListener('click', (e) => {
+    const item = e.target.closest('.search-result-item');
+    if (!item) return;
+    const idx = Number(item.dataset.idx);
+    const items = document.getElementById('modal-search-results')._items;
+    if (items && items[idx]) selectSearchResult(items[idx]);
+  });
+  document.getElementById('modal-search-results').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      const item = e.target.closest('.search-result-item');
+      if (!item) return;
+      const idx = Number(item.dataset.idx);
+      const items = document.getElementById('modal-search-results')._items;
+      if (items && items[idx]) selectSearchResult(items[idx]);
+    }
   });
 
   // 교보문고 검색

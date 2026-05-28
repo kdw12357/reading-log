@@ -107,6 +107,21 @@
       <form id="book-form" novalidate>
         <input type="hidden" id="book-id" />
 
+        <!-- 책 검색 자동 입력 -->
+        <div class="book-search-section">
+          <div class="book-search-bar">
+            <input
+              type="text"
+              id="modal-search-input"
+              class="form-input"
+              placeholder="책 제목이나 저자로 검색하여 자동 입력..."
+            />
+            <button type="button" class="btn btn-accent btn-sm" id="btn-modal-search">검색</button>
+          </div>
+          <div id="modal-search-status" class="modal-search-status hidden"></div>
+          <div id="modal-search-results" class="search-result-list hidden"></div>
+        </div>
+
         <!-- 표지 이미지 -->
         <div class="form-group cover-upload-group">
           <label class="form-label">책 표지 이미지</label>

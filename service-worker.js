@@ -4,7 +4,7 @@
 //  캐시 버전을 바꾸면 activate 시 이전 캐시가 자동 삭제됩니다.
 //  앱 파일을 수정한 경우 CACHE_NAME을 v2, v3 ... 으로 올려주세요.
 // ─────────────────────────────────────────────────────────────
-const CACHE_NAME = 'reading-log-v2';
+const CACHE_NAME = 'reading-log-v3';
 
 const ASSETS = [
   './',
