@@ -37,15 +37,10 @@ function showToast(msg) {
 /* ===== Router ===== */
 function route() {
   const hash = location.hash || '#gallery';
-  const [path, query] = hash.split('?');
+  const [path] = hash.split('?');
 
-  updateNavActive(path);
-
-  if (path === '#gallery') {
+  if (path === '#gallery' || path === '') {
     renderGallery();
-  } else if (path === '#form') {
-    const params = new URLSearchParams(query);
-    renderForm(params.get('id'));
   } else if (path.startsWith('#detail/')) {
     const id = path.replace('#detail/', '');
     renderDetail(id);
@@ -61,9 +56,16 @@ function showView(id) {
   el.classList.add('active');
 }
 
-function updateNavActive(path) {
-  document.getElementById('nav-gallery').classList.toggle('active', path === '#gallery');
-  document.getElementById('nav-form').classList.toggle('active', path === '#form');
+/* ===== 모달 ===== */
+function openFormModal(editId) {
+  renderForm(editId);
+  document.getElementById('modal-form').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeFormModal() {
+  document.getElementById('modal-form').classList.add('hidden');
+  document.body.style.overflow = '';
 }
 
 /* ===== Gallery View ===== */
@@ -136,7 +138,6 @@ function bookCard(book) {
 let currentCoverBase64 = null;
 
 function renderForm(editId) {
-  showView('view-form');
   currentCoverBase64 = null;
 
   const titleEl = document.getElementById('form-title');
@@ -383,14 +384,17 @@ function bindEvents() {
         books[idx] = { ...books[idx], ...bookData };
         saveBooks(books);
         showToast('수정했습니다.');
-        location.hash = `#detail/${editId}`;
+        closeFormModal();
+        renderDetail(editId);
       }
     } else {
       const newBook = { id: generateId(), createdAt: new Date().toISOString(), ...bookData };
       books.push(newBook);
       saveBooks(books);
       showToast('등록했습니다!');
+      closeFormModal();
       location.hash = '#gallery';
+      renderGallery();
     }
   });
 
@@ -400,15 +404,20 @@ function bindEvents() {
     hideCoverPreview();
   });
 
-  // 취소
-  document.getElementById('btn-cancel').addEventListener('click', () => {
-    history.back();
+  // 모달 닫기 (✕ 버튼, 취소 버튼, 배경 클릭)
+  document.getElementById('btn-modal-close').addEventListener('click', closeFormModal);
+  document.getElementById('btn-cancel').addEventListener('click', closeFormModal);
+  document.getElementById('modal-form').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeFormModal();
   });
+
+  // + 책 등록 버튼 (헤더), 빈 상태 버튼
+  document.getElementById('btn-add-book').addEventListener('click', () => openFormModal());
+  document.getElementById('btn-empty-add').addEventListener('click', () => openFormModal());
 
   // 수정 버튼 (상세 페이지)
   document.getElementById('btn-edit').addEventListener('click', (e) => {
-    const id = e.currentTarget.dataset.id;
-    location.hash = `#form?id=${id}`;
+    openFormModal(e.currentTarget.dataset.id);
   });
 
   // 삭제 버튼 (상세 페이지)
