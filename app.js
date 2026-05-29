@@ -19,6 +19,168 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
+/* ===== Sync ===== */
+const SYNC_URL = 'https://reading-proxy.kdw12357.workers.dev/sync';
+const SYNC_SECRET_KEY = 'syncSecret';
+const SYNC_CONFLICT_NOTICED_KEY = 'syncConflictNoticed';
+let syncState = { status: 'idle', lastSyncedAt: null };
+
+function getSyncSecret() {
+  return localStorage.getItem(SYNC_SECRET_KEY) || '';
+}
+
+function setSyncSecret(secret) {
+  localStorage.setItem(SYNC_SECRET_KEY, secret);
+}
+
+function clearSyncSecret() {
+  localStorage.removeItem(SYNC_SECRET_KEY);
+}
+
+function formatSyncTime(ts) {
+  if (!ts) return '방금';
+  const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
+  if (diff < 1) return '방금';
+  if (diff < 60) return `${diff}분 전`;
+  const h = Math.floor(diff / 60);
+  return h < 24 ? `${h}시간 전` : `${Math.floor(h / 24)}일 전`;
+}
+
+function updateSyncStatus(status, ts) {
+  syncState.status = status;
+  if (ts) syncState.lastSyncedAt = ts;
+
+  const textEl = document.getElementById('sync-status-text');
+  const bar = document.getElementById('sync-indicator');
+  if (!textEl || !bar) return;
+
+  const map = {
+    syncing:  { text: '동기화 중...', cls: 'sync-syncing' },
+    synced:   { text: `동기화됨 (${formatSyncTime(syncState.lastSyncedAt)})`, cls: 'sync-ok' },
+    offline:  { text: '오프라인 – 캐시 데이터 표시 중', cls: 'sync-offline' },
+    failed:   { text: '동기화 실패', cls: 'sync-failed' },
+    'no-key': { text: '비밀 키 없음 – 설정에서 입력해주세요', cls: 'sync-nokey' },
+  };
+
+  const info = map[status];
+  if (!info) { bar.classList.add('hidden'); return; }
+
+  textEl.textContent = info.text;
+  bar.className = `sync-indicator ${info.cls}`;
+}
+
+async function syncFetch() {
+  const res = await fetch(SYNC_URL, {
+    headers: { 'X-Sync-Secret': getSyncSecret() },
+  });
+  if (res.status === 401) { const e = new Error('unauthorized'); e.code = 401; throw e; }
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+async function syncPush(books) {
+  const res = await fetch(SYNC_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Sync-Secret': getSyncSecret() },
+    body: JSON.stringify({ books }),
+  });
+  if (res.status === 401) { const e = new Error('unauthorized'); e.code = 401; throw e; }
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+async function startupSync() {
+  if (!getSyncSecret()) { updateSyncStatus('no-key'); return; }
+
+  updateSyncStatus('syncing');
+  try {
+    const data = await syncFetch();
+    if (data.updatedAt && Array.isArray(data.books)) {
+      saveBooks(data.books);
+      updateSyncStatus('synced', data.updatedAt);
+      route();
+    } else {
+      const local = loadBooks();
+      if (local.length > 0) {
+        const result = await syncPush(local);
+        updateSyncStatus('synced', result.updatedAt);
+      } else {
+        updateSyncStatus('synced', new Date().toISOString());
+      }
+    }
+  } catch (err) {
+    if (err.code === 401) {
+      updateSyncStatus('failed');
+      showToast('동기화 비밀 키가 올바르지 않습니다. 설정에서 확인해주세요.');
+      openSettingsModal();
+    } else {
+      updateSyncStatus('offline');
+    }
+  }
+}
+
+async function manualSync() {
+  if (!getSyncSecret()) {
+    showToast('동기화 비밀 키가 없습니다. 설정에서 입력해주세요.');
+    openSettingsModal();
+    return;
+  }
+
+  updateSyncStatus('syncing');
+  try {
+    const data = await syncFetch();
+    if (data.updatedAt && Array.isArray(data.books)) {
+      saveBooks(data.books);
+      updateSyncStatus('synced', data.updatedAt);
+      route();
+      showToast(`동기화 완료 (${data.books.length}권)`);
+    } else {
+      const local = loadBooks();
+      const result = await syncPush(local);
+      updateSyncStatus('synced', result.updatedAt);
+      showToast('로컬 데이터를 서버에 업로드했습니다.');
+    }
+  } catch (err) {
+    if (err.code === 401) {
+      updateSyncStatus('failed');
+      showToast('동기화 실패: 비밀 키를 확인해주세요.');
+      openSettingsModal();
+    } else {
+      updateSyncStatus('offline');
+      showToast('동기화 실패: 네트워크를 확인해주세요.');
+    }
+  }
+}
+
+async function saveBooksAndSync(books) {
+  saveBooks(books);
+  if (!getSyncSecret()) return;
+  updateSyncStatus('syncing');
+  try {
+    const result = await syncPush(books);
+    updateSyncStatus('synced', result.updatedAt);
+  } catch (err) {
+    updateSyncStatus('failed');
+    showToast(err.code === 401
+      ? '동기화 실패: 비밀 키를 확인해주세요.'
+      : '동기화 실패 – 로컬에는 저장됐습니다.');
+  }
+}
+
+/* ===== Settings Modal ===== */
+function openSettingsModal() {
+  document.getElementById('input-sync-secret').value = getSyncSecret();
+  document.getElementById('input-sync-secret').type = 'password';
+  document.getElementById('btn-toggle-secret').textContent = '표시';
+  document.getElementById('modal-settings').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSettingsModal() {
+  document.getElementById('modal-settings').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
 /* ===== Toast ===== */
 let toastTimer = null;
 
@@ -550,7 +712,7 @@ function importJSON(file) {
         ? `현재 데이터(${existing.length}권)를 덮어쓰고 가져온 데이터(${data.length}권)로 교체할까요?`
         : `데이터 ${data.length}권을 가져올까요?`;
       if (!confirm(msg)) return;
-      saveBooks(data);
+      saveBooksAndSync(data);
       showToast(`${data.length}권을 가져왔습니다.`);
       location.hash = '#gallery';
       renderGallery();
@@ -761,7 +923,7 @@ function bindEvents() {
       const idx = books.findIndex(b => b.id === editId);
       if (idx !== -1) {
         books[idx] = { ...books[idx], ...bookData };
-        saveBooks(books);
+        saveBooksAndSync(books);
         showToast('수정했습니다.');
         closeFormModal();
         renderDetail(editId);
@@ -769,7 +931,7 @@ function bindEvents() {
     } else {
       const newBook = { id: generateId(), createdAt: new Date().toISOString(), ...bookData };
       books.push(newBook);
-      saveBooks(books);
+      saveBooksAndSync(books);
       showToast('등록했습니다!');
       closeFormModal();
       location.hash = '#gallery';
@@ -809,7 +971,7 @@ function bindEvents() {
     if (!book) return;
     if (!confirm(`"${book.title}"을(를) 삭제할까요?`)) return;
     const updated = books.filter(b => b.id !== id);
-    saveBooks(updated);
+    saveBooksAndSync(updated);
     showToast('삭제했습니다.');
     location.hash = '#gallery';
   });
@@ -878,6 +1040,46 @@ function bindEvents() {
     if (file) importJSON(file);
     e.target.value = '';
   });
+
+  // 동기화 버튼
+  document.getElementById('btn-sync').addEventListener('click', manualSync);
+
+  // 설정 버튼 및 모달
+  document.getElementById('btn-settings').addEventListener('click', openSettingsModal);
+  document.getElementById('btn-settings-close').addEventListener('click', closeSettingsModal);
+  document.getElementById('btn-settings-cancel').addEventListener('click', closeSettingsModal);
+  document.getElementById('modal-settings').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeSettingsModal();
+  });
+
+  document.getElementById('btn-save-secret').addEventListener('click', () => {
+    const secret = document.getElementById('input-sync-secret').value.trim();
+    if (!secret) { showToast('비밀 키를 입력해주세요.'); return; }
+    setSyncSecret(secret);
+    closeSettingsModal();
+    if (!localStorage.getItem(SYNC_CONFLICT_NOTICED_KEY)) {
+      localStorage.setItem(SYNC_CONFLICT_NOTICED_KEY, '1');
+      showToast('저장됨. PC와 폰에서 동시에 편집하면 마지막 저장이 이깁니다.');
+    } else {
+      showToast('비밀 키를 저장했습니다.');
+    }
+    startupSync();
+  });
+
+  document.getElementById('btn-clear-secret').addEventListener('click', () => {
+    if (!confirm('동기화 비밀 키를 삭제할까요?')) return;
+    clearSyncSecret();
+    closeSettingsModal();
+    updateSyncStatus('no-key');
+    showToast('비밀 키를 삭제했습니다.');
+  });
+
+  document.getElementById('btn-toggle-secret').addEventListener('click', () => {
+    const inp = document.getElementById('input-sync-secret');
+    const btn = document.getElementById('btn-toggle-secret');
+    if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '숨기기'; }
+    else { inp.type = 'password'; btn.textContent = '표시'; }
+  });
 }
 
 function kyoboSearch() {
@@ -893,6 +1095,7 @@ function kyoboSearch() {
 function init() {
   bindEvents();
   route();
+  startupSync();
 }
 
 document.addEventListener('DOMContentLoaded', init);

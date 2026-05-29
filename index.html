@@ -24,8 +24,10 @@
       </h1>
       <div class="header-actions">
         <button class="btn btn-accent btn-sm" id="btn-add-book">+ 책 등록</button>
+        <button class="btn btn-ghost btn-sm" id="btn-sync" title="지금 동기화">↻ 동기화</button>
         <button class="btn btn-ghost btn-sm" id="btn-export">JSON 내보내기</button>
         <button class="btn btn-ghost btn-sm" id="btn-import-trigger">JSON 가져오기</button>
+        <button class="btn btn-ghost btn-sm" id="btn-settings">⚙ 설정</button>
         <input type="file" id="import-file-input" accept=".json" hidden />
       </div>
     </div>
@@ -40,6 +42,12 @@
         />
         <button class="btn btn-accent btn-sm" id="btn-kyobo-search">검색</button>
       </div>
+    </div>
+
+    <!-- 동기화 상태 인디케이터 -->
+    <div class="sync-indicator hidden" id="sync-indicator">
+      <span class="sync-dot"></span>
+      <span class="sync-status-text" id="sync-status-text"></span>
     </div>
 
     <div class="header-tabs">
@@ -259,6 +267,29 @@
           <button type="button" class="btn btn-ghost" id="btn-cancel">취소</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- 설정 모달 -->
+  <div id="modal-settings" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal-content settings-modal-content">
+      <button class="modal-close" id="btn-settings-close" aria-label="닫기">✕</button>
+      <h2 class="form-title" id="settings-title">설정</h2>
+
+      <div class="form-group">
+        <label class="form-label" for="input-sync-secret">동기화 비밀 키</label>
+        <div class="sync-secret-row">
+          <input type="password" id="input-sync-secret" class="form-input" placeholder="비밀 키를 입력하세요" autocomplete="off" />
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-toggle-secret">표시</button>
+        </div>
+        <p class="form-hint">키는 이 기기에만 저장됩니다. 코드에 하드코딩되지 않습니다.</p>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-accent" id="btn-save-secret">저장</button>
+        <button type="button" class="btn btn-ghost" id="btn-clear-secret">키 삭제</button>
+        <button type="button" class="btn btn-ghost" id="btn-settings-cancel">닫기</button>
+      </div>
     </div>
   </div>
 
