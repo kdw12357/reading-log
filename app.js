@@ -371,16 +371,16 @@ function renderSummaryStatsHTML(allYears, yearBooks) {
     const g = b.genre || '기타';
     genreCounts[g] = (genreCounts[g] || 0) + 1;
   });
-  const sorted = Object.entries(genreCounts).sort((a, b) => b[1] - a[1]);
-  const max = sorted[0]?.[1] || 1;
+  const sorted = Object.entries(genreCounts)
+    .filter(([, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1]);
 
-  const genreRows = sorted.map(([genre, count]) => {
-    const pct = Math.round(count / max * 100);
+  const genreCards = sorted.map(([genre, count]) => {
+    const color = getGenreColor(genre);
     return `
-      <div class="stat-genre-row">
-        <span class="stat-genre-label">${escapeHtml(genre)}</span>
-        <div class="stat-bar-wrap"><div class="stat-bar" style="width:${pct}%"></div></div>
-        <span class="stat-genre-count">${count}권</span>
+      <div class="genre-card" style="background:${color.bg};color:${color.text};">
+        <span class="genre-card-name">${escapeHtml(genre)}</span>
+        <span class="genre-card-count">${count}</span>
       </div>`;
   }).join('');
 
@@ -390,9 +390,9 @@ function renderSummaryStatsHTML(allYears, yearBooks) {
         <h2 class="summary-section-title">연간 독서 통계</h2>
         <select class="form-input summary-year-select" id="stats-year-select">${yearOptions}</select>
       </div>
-      <div class="stats-total-display">총 <strong>${yearBooks.length}권</strong> 읽음</div>
+      <div class="stats-year-header">${currentSummaryYear}년 · 총 <strong>${yearBooks.length}권</strong> 읽음</div>
       ${sorted.length > 0
-        ? `<div class="stat-genres">${genreRows}</div>`
+        ? `<div class="genre-cards-row">${genreCards}</div>`
         : `<p class="summary-empty-text">이 해에 읽은 책이 없습니다.</p>`}
     </div>`;
 }
