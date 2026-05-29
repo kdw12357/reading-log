@@ -34,19 +34,35 @@ function showToast(msg) {
   }, 2400);
 }
 
+/* ===== 독서결산 상태 ===== */
+let currentSummaryYear = new Date().getFullYear();
+let currentTimelineYear = new Date().getFullYear();
+let currentTimelineMonth = new Date().getMonth() + 1;
+
 /* ===== Router ===== */
 function route() {
   const hash = location.hash || '#gallery';
   const [path] = hash.split('?');
 
   if (path === '#gallery' || path === '') {
+    setActiveTab('gallery');
     renderGallery();
+  } else if (path === '#summary') {
+    setActiveTab('summary');
+    renderSummary();
   } else if (path.startsWith('#detail/')) {
     const id = path.replace('#detail/', '');
     renderDetail(id);
   } else {
+    setActiveTab('gallery');
     renderGallery();
   }
+}
+
+function setActiveTab(tabName) {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tabName);
+  });
 }
 
 function showView(id) {
@@ -69,26 +85,6 @@ function closeFormModal() {
 }
 
 /* ===== Gallery View ===== */
-function renderYearStats(books) {
-  const genreCounts = {};
-  books.forEach(book => {
-    const g = book.genre || '기타';
-    genreCounts[g] = (genreCounts[g] || 0) + 1;
-  });
-  const sorted = Object.entries(genreCounts).sort((a, b) => b[1] - a[1]);
-  const max = sorted[0]?.[1] || 1;
-  const bars = sorted.map(([genre, count]) => {
-    const pct = Math.round((count / max) * 100);
-    return `
-      <div class="stat-genre-row">
-        <span class="stat-genre-label">${escapeHtml(genre)}</span>
-        <div class="stat-bar-wrap"><div class="stat-bar" style="width:${pct}%"></div></div>
-        <span class="stat-genre-count">${count}권</span>
-      </div>`;
-  }).join('');
-  return `<div class="year-stats"><div class="stat-genres">${bars}</div></div>`;
-}
-
 function getBookYear(book) {
   const d = book.endDate || book.startDate;
   return d ? d.slice(0, 4) : '날짜 미입력';
@@ -108,7 +104,6 @@ function renderGallery() {
 
   empty.classList.add('hidden');
 
-  // 연도별 그룹핑 (최신 연도 우선)
   const groups = books.reduce((acc, book) => {
     const year = getBookYear(book);
     if (!acc[year]) acc[year] = [];
@@ -125,14 +120,12 @@ function renderGallery() {
   container.innerHTML = sortedYears.map(year => {
     const yearBooks = groups[year];
     const cards = yearBooks.map(book => bookCard(book)).join('');
-    const statsHtml = year !== '날짜 미입력' ? renderYearStats(yearBooks) : '';
     return `
       <div class="year-section">
         <h2 class="year-heading">
           ${escapeHtml(year)}년
           <span class="book-count">${yearBooks.length}권</span>
         </h2>
-        ${statsHtml}
         <div class="book-grid">${cards}</div>
       </div>
     `;
@@ -157,6 +150,230 @@ function bookCard(book) {
   `;
 }
 
+/* ===== 독서결산 뷰 ===== */
+const GENRE_COLORS = {
+  '소설':    { bg: '#e8d4be', text: '#6b4423' },
+  '에세이':  { bg: '#c8ddc4', text: '#2e5a28' },
+  '자기계발': { bg: '#ede0b0', text: '#6b5a20' },
+  '인문':    { bg: '#bccde8', text: '#254a78' },
+  '경제경영': { bg: '#e8e4b0', text: '#5a5820' },
+  '과학':    { bg: '#b0dedd', text: '#1e5a58' },
+  '기타':    { bg: '#dfb0dd', text: '#582058' },
+};
+
+function getGenreColor(genre) {
+  return GENRE_COLORS[genre] || GENRE_COLORS['기타'];
+}
+
+function renderSummary() {
+  showView('view-summary');
+  const books = loadBooks();
+  const container = document.getElementById('summary-container');
+
+  if (books.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📊</div>
+        <p class="empty-title">아직 등록된 책이 없어요</p>
+        <p class="empty-desc">책을 등록하면 독서 통계를 확인할 수 있어요.</p>
+      </div>`;
+    return;
+  }
+
+  const allYears = [...new Set(
+    books.map(b => getBookYear(b)).filter(y => y !== '날짜 미입력')
+  )].sort((a, b) => Number(b) - Number(a));
+
+  if (!allYears.includes(String(currentSummaryYear))) {
+    currentSummaryYear = allYears.length > 0 ? Number(allYears[0]) : new Date().getFullYear();
+  }
+
+  const yearBooks = books.filter(b => getBookYear(b) === String(currentSummaryYear));
+
+  container.innerHTML =
+    renderSummaryStatsHTML(allYears, yearBooks) +
+    renderTimelineHTML(books);
+
+  bindSummaryEvents(books);
+}
+
+function renderSummaryStatsHTML(allYears, yearBooks) {
+  const thisYear = new Date().getFullYear();
+  const years = allYears.length > 0 ? allYears : [String(thisYear)];
+  const yearOptions = years.map(y =>
+    `<option value="${y}" ${Number(y) === currentSummaryYear ? 'selected' : ''}>${y}년</option>`
+  ).join('');
+
+  const genreCounts = {};
+  yearBooks.forEach(b => {
+    const g = b.genre || '기타';
+    genreCounts[g] = (genreCounts[g] || 0) + 1;
+  });
+  const sorted = Object.entries(genreCounts).sort((a, b) => b[1] - a[1]);
+  const max = sorted[0]?.[1] || 1;
+
+  const genreRows = sorted.map(([genre, count]) => {
+    const pct = Math.round(count / max * 100);
+    return `
+      <div class="stat-genre-row">
+        <span class="stat-genre-label">${escapeHtml(genre)}</span>
+        <div class="stat-bar-wrap"><div class="stat-bar" style="width:${pct}%"></div></div>
+        <span class="stat-genre-count">${count}권</span>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="summary-stats-section">
+      <div class="summary-section-header">
+        <h2 class="summary-section-title">연간 독서 통계</h2>
+        <select class="form-input summary-year-select" id="stats-year-select">${yearOptions}</select>
+      </div>
+      <div class="stats-total-display">총 <strong>${yearBooks.length}권</strong> 읽음</div>
+      ${sorted.length > 0
+        ? `<div class="stat-genres">${genreRows}</div>`
+        : `<p class="summary-empty-text">이 해에 읽은 책이 없습니다.</p>`}
+    </div>`;
+}
+
+function renderTimelineHTML(books) {
+  const year = currentTimelineYear;
+  const month = currentTimelineMonth;
+
+  const monthStart = new Date(year, month - 1, 1);
+  const monthEnd = new Date(year, month, 0);
+  const daysInMonth = monthEnd.getDate();
+
+  const booksInMonth = books.filter(b => {
+    if (!b.startDate && !b.endDate) return false;
+    const s = b.startDate ? new Date(b.startDate) : new Date(b.endDate);
+    const e = b.endDate ? new Date(b.endDate) : new Date(b.startDate);
+    return s <= monthEnd && e >= monthStart;
+  });
+
+  // 연도·월 선택 옵션
+  const allYearsSet = new Set(books.map(b => getBookYear(b)).filter(y => y !== '날짜 미입력'));
+  allYearsSet.add(String(year));
+  const allYearsSorted = [...allYearsSet].sort((a, b) => Number(a) - Number(b));
+
+  const yearOpts = allYearsSorted.map(y =>
+    `<option value="${y}" ${Number(y) === year ? 'selected' : ''}>${y}년</option>`
+  ).join('');
+  const monthOpts = Array.from({ length: 12 }, (_, i) => {
+    const m = i + 1;
+    return `<option value="${m}" ${m === month ? 'selected' : ''}>${m}월</option>`;
+  }).join('');
+
+  // 오늘 날짜
+  const today = new Date();
+  const isCurrentMonth = today.getFullYear() === year && today.getMonth() + 1 === month;
+  const todayDay = isCurrentMonth ? today.getDate() : null;
+
+  // 날짜 헤더
+  const dayHeaders = Array.from({ length: daysInMonth }, (_, i) => {
+    const d = i + 1;
+    const cls = d === todayDay ? 'tl-day-cell tl-today-header' : 'tl-day-cell';
+    return `<div class="${cls}">${d}</div>`;
+  }).join('');
+
+  // 책 막대
+  let barsHtml;
+  if (booksInMonth.length === 0) {
+    barsHtml = '<div class="tl-empty">이 달에 읽은 책이 없습니다.</div>';
+  } else {
+    barsHtml = booksInMonth.map(book => {
+      const s = book.startDate ? new Date(book.startDate) : new Date(book.endDate);
+      const e = book.endDate ? new Date(book.endDate) : new Date(book.startDate);
+      const effStart = s < monthStart ? monthStart : s;
+      const effEnd = e > monthEnd ? monthEnd : e;
+      const startDay = effStart.getDate();
+      const endDay = effEnd.getDate();
+      const leftPct = ((startDay - 1) / daysInMonth * 100).toFixed(3);
+      const widthPct = ((endDay - startDay + 1) / daysInMonth * 100).toFixed(3);
+      const color = getGenreColor(book.genre);
+      const extraStyle = [
+        s < monthStart ? 'border-left:3px dashed rgba(0,0,0,0.15);border-top-left-radius:0;border-bottom-left-radius:0;' : '',
+        e > monthEnd  ? 'border-right:3px dashed rgba(0,0,0,0.15);border-top-right-radius:0;border-bottom-right-radius:0;' : '',
+      ].join('');
+
+      return `
+        <div class="tl-book-row">
+          <div class="tl-bar"
+            style="left:${leftPct}%;width:${widthPct}%;background:${color.bg};color:${color.text};${extraStyle}"
+            data-id="${book.id}"
+            title="${escapeHtml(book.title)}"
+          >${escapeHtml(book.title)}</div>
+        </div>`;
+    }).join('');
+  }
+
+  const todayLineHtml = todayDay
+    ? `<div class="tl-today-line" style="left:${((todayDay - 0.5) / daysInMonth * 100).toFixed(3)}%"></div>`
+    : '';
+
+  const dayPct = (100 / daysInMonth).toFixed(4);
+
+  return `
+    <div class="summary-timeline-section">
+      <div class="summary-section-header">
+        <h2 class="summary-section-title">독서 타임라인</h2>
+      </div>
+      <div class="timeline-nav">
+        <button class="btn btn-ghost btn-sm" id="btn-prev-month">◀</button>
+        <span class="timeline-month-label">${year}년 ${month}월</span>
+        <button class="btn btn-ghost btn-sm" id="btn-next-month">▶</button>
+        <div class="timeline-selectors">
+          <select class="form-input timeline-sel" id="timeline-year-select">${yearOpts}</select>
+          <select class="form-input timeline-sel" id="timeline-month-select">${monthOpts}</select>
+        </div>
+      </div>
+      <div class="timeline-calendar">
+        <div class="timeline-inner">
+          <div class="tl-day-header" style="grid-template-columns:repeat(${daysInMonth},1fr)">
+            ${dayHeaders}
+          </div>
+          <div class="tl-body" style="background-size:${dayPct}% 100%">
+            ${todayLineHtml}
+            ${barsHtml}
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function bindSummaryEvents(books) {
+  document.getElementById('stats-year-select')?.addEventListener('change', e => {
+    currentSummaryYear = Number(e.target.value);
+    renderSummary();
+  });
+
+  document.getElementById('btn-prev-month')?.addEventListener('click', () => {
+    currentTimelineMonth--;
+    if (currentTimelineMonth < 1) { currentTimelineMonth = 12; currentTimelineYear--; }
+    renderSummary();
+  });
+
+  document.getElementById('btn-next-month')?.addEventListener('click', () => {
+    currentTimelineMonth++;
+    if (currentTimelineMonth > 12) { currentTimelineMonth = 1; currentTimelineYear++; }
+    renderSummary();
+  });
+
+  document.getElementById('timeline-year-select')?.addEventListener('change', e => {
+    currentTimelineYear = Number(e.target.value);
+    renderSummary();
+  });
+
+  document.getElementById('timeline-month-select')?.addEventListener('change', e => {
+    currentTimelineMonth = Number(e.target.value);
+    renderSummary();
+  });
+
+  document.querySelector('.tl-body')?.addEventListener('click', e => {
+    const bar = e.target.closest('.tl-bar');
+    if (bar) location.hash = `#detail/${bar.dataset.id}`;
+  });
+}
+
 /* ===== Form View ===== */
 let currentCoverBase64 = null;
 let currentRating = null;
@@ -174,7 +391,6 @@ function renderForm(editId) {
   const titleEl = document.getElementById('form-title');
   const form = document.getElementById('book-form');
 
-  // 폼 초기화
   form.reset();
   document.getElementById('book-id').value = '';
   hideCoverPreview();
@@ -470,6 +686,13 @@ function escapeHtml(str) {
 
 /* ===== 이벤트 바인딩 ===== */
 function bindEvents() {
+  // 탭 전환
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      location.hash = `#${btn.dataset.tab}`;
+    });
+  });
+
   // 라우팅
   window.addEventListener('hashchange', route);
 

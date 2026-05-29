@@ -41,6 +41,11 @@
         <button class="btn btn-accent btn-sm" id="btn-kyobo-search">검색</button>
       </div>
     </div>
+
+    <div class="header-tabs">
+      <button class="tab-btn active" data-tab="gallery">📚 갤러리</button>
+      <button class="tab-btn" data-tab="summary">📊 독서결산</button>
+    </div>
   </header>
 
   <!-- 메인 콘텐츠 -->
@@ -59,6 +64,13 @@
       </div>
     </section>
 
+
+    <!-- 독서결산 뷰 -->
+    <section id="view-summary" class="view hidden">
+      <div id="summary-container">
+        <!-- JS로 렌더링 -->
+      </div>
+    </section>
 
     <!-- 책 상세 페이지 -->
     <section id="view-detail" class="view hidden">
