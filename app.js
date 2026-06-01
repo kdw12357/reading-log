@@ -489,32 +489,32 @@ function renderGalleryFilterTabs(counts) {
   const tabsEl = document.getElementById('gallery-filter-tabs');
   if (!tabsEl) return;
   const filters = [
-    { key: 'all', label: '전체' },
-    { key: 'want', label: '읽을 책' },
+    { key: 'all',     label: '전체' },
+    { key: 'want',    label: '읽을 책' },
     { key: 'reading', label: '읽는 중' },
-    { key: 'done', label: '읽은 책' },
+    { key: 'done',    label: '읽은 책' },
   ];
-  tabsEl.innerHTML = filters.map(({ key, label }) =>
-    `<button class="gallery-tab${currentGalleryFilter === key ? ' active' : ''}" data-filter="${key}">
-      ${label} <span class="gallery-tab-count">${counts[key]}</span>
-    </button>`
-  ).join('');
+  tabsEl.innerHTML = `
+    <div class="gallery-filter-bar">
+      <select class="gallery-filter-select" id="gallery-filter-select">
+        ${filters.map(({ key, label }) =>
+          `<option value="${key}"${currentGalleryFilter === key ? ' selected' : ''}>${label} (${counts[key]})</option>`
+        ).join('')}
+      </select>
+    </div>`;
 
-  tabsEl.querySelectorAll('.gallery-tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-      currentGalleryFilter = btn.dataset.filter;
-      renderGallery();
-    });
+  document.getElementById('gallery-filter-select').addEventListener('change', (e) => {
+    currentGalleryFilter = e.target.value;
+    renderGallery();
   });
 }
 
 function bookCard(book) {
   const status = getBookStatus(book);
-  const statusBadge = status === 'reading'
-    ? '<div class="status-badge status-reading">읽는 중</div>'
-    : status === 'want'
-    ? '<div class="status-badge status-want">읽을 책</div>'
-    : '';
+  const statusBadge =
+    status === 'reading' ? '<div class="status-badge status-reading">읽는 중</div>' :
+    status === 'want'    ? '<div class="status-badge status-want">읽을 책</div>' :
+                           '<div class="status-badge status-done">읽은 책</div>';
 
   const cover = book.coverImage
     ? `<img src="${book.coverImage}" alt="${escapeHtml(book.title)}" loading="lazy" />`

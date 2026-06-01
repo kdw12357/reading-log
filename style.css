@@ -1216,6 +1216,45 @@ img { max-width: 100%; display: block; }
   color: var(--accent);
 }
 
+/* ===== 갤러리 필터 드롭다운 ===== */
+.gallery-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.gallery-filter-select {
+  appearance: none;
+  background-color: var(--surface);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239e8272' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 8px 36px 8px 14px;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.gallery-filter-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(139, 111, 71, 0.1);
+  outline: none;
+}
+
+.gallery-filter-select:hover {
+  border-color: var(--accent);
+}
+
+@media (max-width: 600px) {
+  .gallery-filter-select { width: 100%; }
+}
+
 /* ===== 책 카드 상태 배지 ===== */
 .status-badge {
   position: absolute;
@@ -1229,14 +1268,19 @@ img { max-width: 100%; display: block; }
   letter-spacing: 0.01em;
 }
 
-.status-reading {
-  background: rgba(184, 224, 184, 0.92);
-  color: #2e5a28;
+.status-want {
+  background: rgba(107, 114, 128, 0.82);
+  color: #fff;
 }
 
-.status-want {
-  background: rgba(188, 205, 232, 0.92);
-  color: #254a78;
+.status-reading {
+  background: rgba(245, 158, 11, 0.90);
+  color: #fff;
+}
+
+.status-done {
+  background: rgba(16, 185, 129, 0.88);
+  color: #fff;
 }
 
 /* ===== 장르 카드 호버 ===== */
