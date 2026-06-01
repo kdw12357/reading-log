@@ -1094,6 +1094,13 @@ img { max-width: 100%; display: block; }
   position: relative;
 }
 
+#btn-add-book,
+#btn-more-menu {
+  height: 34px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
 .btn-hamburger {
   padding: 6px 10px;
 }
