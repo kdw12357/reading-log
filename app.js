@@ -167,6 +167,65 @@ async function saveBooksAndSync(books) {
   }
 }
 
+/* ===== Book Detail Modal ===== */
+let currentDetailId = null;
+
+function openBookDetailModal(bookId) {
+  const book = loadBooks().find(b => b.id === bookId);
+  if (!book) return;
+  currentDetailId = bookId;
+
+  const coverEl = document.getElementById('book-detail-cover');
+  const placeholderEl = document.getElementById('book-detail-cover-placeholder');
+  if (book.coverImage) {
+    coverEl.src = book.coverImage;
+    coverEl.alt = book.title || '';
+    coverEl.classList.remove('hidden');
+    placeholderEl.classList.add('hidden');
+  } else {
+    coverEl.classList.add('hidden');
+    placeholderEl.classList.remove('hidden');
+  }
+
+  document.getElementById('book-detail-title').textContent = book.title || '';
+  document.getElementById('book-detail-author').textContent = book.author || '-';
+  document.getElementById('book-detail-publisher').textContent = book.publisher || '-';
+  document.getElementById('book-detail-genre').textContent = book.genre || '-';
+  document.getElementById('book-detail-period').textContent = formatPeriod(book.startDate, book.endDate);
+  document.getElementById('book-detail-ownership').textContent = book.ownership || '-';
+  document.getElementById('book-detail-book-type').textContent = book.bookType || '-';
+
+  const ratingRow = document.getElementById('book-detail-rating-row');
+  const ratingEl = document.getElementById('book-detail-rating');
+  if (book.rating) {
+    ratingEl.textContent = '★'.repeat(book.rating) + '☆'.repeat(5 - book.rating);
+    ratingRow.classList.remove('hidden');
+  } else {
+    ratingRow.classList.add('hidden');
+  }
+
+  document.getElementById('btn-detail-modal-edit').dataset.id = bookId;
+  document.getElementById('btn-detail-modal-delete').dataset.id = bookId;
+
+  const reviewSection = document.getElementById('book-detail-review-section');
+  const reviewEl = document.getElementById('book-detail-review');
+  if (book.review && book.review.trim()) {
+    reviewEl.textContent = book.review;
+    reviewSection.classList.remove('hidden');
+  } else {
+    reviewSection.classList.add('hidden');
+  }
+
+  document.getElementById('modal-book-detail').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeBookDetailModal() {
+  document.getElementById('modal-book-detail').classList.add('hidden');
+  document.body.style.overflow = '';
+  currentDetailId = null;
+}
+
 /* ===== Book Preview Modal ===== */
 let currentPreviewId = null;
 
@@ -235,7 +294,7 @@ function closeBookPreviewModal() {
 function goToPreviewDetail() {
   const id = currentPreviewId;
   closeBookPreviewModal();
-  if (id) location.hash = `#detail/${id}`;
+  if (id) openBookDetailModal(id);
 }
 
 /* ===== Genre Books Modal ===== */
@@ -1072,13 +1131,13 @@ function bindEvents() {
   // 갤러리 카드 클릭
   document.getElementById('gallery-container').addEventListener('click', (e) => {
     const card = e.target.closest('.book-card');
-    if (card) location.hash = `#detail/${card.dataset.id}`;
+    if (card) openBookDetailModal(card.dataset.id);
   });
 
   document.getElementById('gallery-container').addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       const card = e.target.closest('.book-card');
-      if (card) location.hash = `#detail/${card.dataset.id}`;
+      if (card) openBookDetailModal(card.dataset.id);
     }
   });
 
@@ -1139,7 +1198,7 @@ function bindEvents() {
         saveBooksAndSync(books);
         showToast('수정했습니다.');
         closeFormModal();
-        renderDetail(editId);
+        openBookDetailModal(editId);
       }
     } else {
       const newBook = { id: generateId(), createdAt: new Date().toISOString(), ...bookData };
@@ -1281,6 +1340,29 @@ function bindEvents() {
     e.target.value = '';
   });
 
+  // 책 상세 모달
+  document.getElementById('btn-detail-modal-close').addEventListener('click', closeBookDetailModal);
+  document.getElementById('modal-book-detail').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeBookDetailModal();
+  });
+  document.getElementById('btn-detail-modal-edit').addEventListener('click', (e) => {
+    const id = e.currentTarget.dataset.id;
+    closeBookDetailModal();
+    openFormModal(id);
+  });
+  document.getElementById('btn-detail-modal-delete').addEventListener('click', (e) => {
+    const id = e.currentTarget.dataset.id;
+    const books = loadBooks();
+    const book = books.find(b => b.id === id);
+    if (!book) return;
+    if (!confirm(`"${book.title}"을(를) 삭제할까요?`)) return;
+    const updated = books.filter(b => b.id !== id);
+    saveBooksAndSync(updated);
+    showToast('삭제했습니다.');
+    closeBookDetailModal();
+    location.hash = '#gallery';
+  });
+
   // 책 미리보기 모달
   document.getElementById('btn-preview-close').addEventListener('click', closeBookPreviewModal);
   document.getElementById('modal-book-preview').addEventListener('click', (e) => {
@@ -1291,6 +1373,7 @@ function bindEvents() {
 
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
+    if (!document.getElementById('modal-book-detail').classList.contains('hidden')) closeBookDetailModal();
     if (!document.getElementById('modal-book-preview').classList.contains('hidden')) closeBookPreviewModal();
   });
 
@@ -1303,7 +1386,7 @@ function bindEvents() {
     const card = e.target.closest('.book-card');
     if (card) {
       closeGenreBooksModal();
-      location.hash = `#detail/${card.dataset.id}`;
+      openBookDetailModal(card.dataset.id);
     }
   });
 

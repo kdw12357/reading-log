@@ -326,6 +326,45 @@
     </div>
   </div>
 
+  <!-- 책 상세 모달 -->
+  <div id="modal-book-detail" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="book-detail-title">
+    <div class="modal-content book-detail-modal-content">
+      <button class="modal-close" id="btn-detail-modal-close" aria-label="닫기">✕</button>
+
+      <!-- 상단: 2단 (표지 + 정보) -->
+      <div class="book-detail-top">
+        <div class="book-detail-cover-col">
+          <img id="book-detail-cover" src="" alt="" class="book-detail-cover hidden" />
+          <div id="book-detail-cover-placeholder" class="book-detail-cover-placeholder hidden">📗</div>
+        </div>
+        <div class="book-detail-info-col">
+          <h2 class="book-detail-title" id="book-detail-title"></h2>
+          <table class="detail-table">
+            <tbody>
+              <tr><th>저자</th><td id="book-detail-author"></td></tr>
+              <tr><th>출판사</th><td id="book-detail-publisher"></td></tr>
+              <tr><th>장르</th><td id="book-detail-genre"></td></tr>
+              <tr><th>독서 기간</th><td id="book-detail-period"></td></tr>
+              <tr><th>소장 형태</th><td id="book-detail-ownership"></td></tr>
+              <tr><th>책 형태</th><td id="book-detail-book-type"></td></tr>
+              <tr id="book-detail-rating-row" class="hidden"><th>별점</th><td id="book-detail-rating" class="detail-rating"></td></tr>
+            </tbody>
+          </table>
+          <div class="detail-actions">
+            <button class="btn btn-accent" id="btn-detail-modal-edit">수정</button>
+            <button class="btn btn-danger" id="btn-detail-modal-delete">삭제</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 하단: 1단 (독후감) -->
+      <div class="book-detail-review-section hidden" id="book-detail-review-section">
+        <h3 class="review-heading">독후감</h3>
+        <div class="review-body" id="book-detail-review"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- 책 미리보기 모달 -->
   <div id="modal-book-preview" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="preview-title">
     <div class="modal-content book-preview-content">
