@@ -1095,7 +1095,7 @@ img { max-width: 100%; display: block; }
 }
 
 .btn-hamburger {
-  padding: 9px 10px;
+  padding: 6px 10px;
 }
 
 .hamburger-icon {
@@ -1104,7 +1104,7 @@ img { max-width: 100%; display: block; }
   justify-content: center;
   gap: 4px;
   width: 18px;
-  height: 14px;
+  height: 1.28rem;
 }
 
 .hamburger-icon span {
