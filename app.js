@@ -167,6 +167,77 @@ async function saveBooksAndSync(books) {
   }
 }
 
+/* ===== Book Preview Modal ===== */
+let currentPreviewId = null;
+
+function openBookPreviewModal(bookId) {
+  const book = loadBooks().find(b => b.id === bookId);
+  if (!book) return;
+  currentPreviewId = bookId;
+
+  const coverImg = document.getElementById('preview-cover-img');
+  const coverPlaceholder = document.getElementById('preview-cover-placeholder');
+  if (book.coverImage) {
+    coverImg.src = book.coverImage;
+    coverImg.alt = book.title || '';
+    coverImg.classList.remove('hidden');
+    coverPlaceholder.classList.add('hidden');
+  } else {
+    coverImg.classList.add('hidden');
+    coverPlaceholder.classList.remove('hidden');
+  }
+
+  const genreWrap = document.getElementById('preview-genre-wrap');
+  if (book.genre) {
+    const color = getGenreColor(book.genre);
+    genreWrap.innerHTML = `<span class="book-card-genre preview-genre-badge" style="background:${color.bg};color:${color.text};">${escapeHtml(book.genre)}</span>`;
+  } else {
+    genreWrap.innerHTML = '';
+  }
+
+  document.getElementById('preview-title').textContent = book.title || '';
+
+  const authorEl = document.getElementById('preview-author');
+  authorEl.textContent = book.author || '';
+  authorEl.classList.toggle('hidden', !book.author);
+
+  const publisherEl = document.getElementById('preview-publisher');
+  publisherEl.textContent = book.publisher || '';
+  publisherEl.classList.toggle('hidden', !book.publisher);
+
+  const ratingEl = document.getElementById('preview-rating');
+  if (book.rating) {
+    ratingEl.textContent = '★'.repeat(book.rating) + '☆'.repeat(5 - book.rating);
+    ratingEl.classList.remove('hidden');
+  } else {
+    ratingEl.classList.add('hidden');
+  }
+
+  const period = formatPeriod(book.startDate, book.endDate);
+  const periodEl = document.getElementById('preview-period');
+  if (period && period !== '-') {
+    periodEl.textContent = period;
+    periodEl.classList.remove('hidden');
+  } else {
+    periodEl.classList.add('hidden');
+  }
+
+  document.getElementById('modal-book-preview').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeBookPreviewModal() {
+  document.getElementById('modal-book-preview').classList.add('hidden');
+  document.body.style.overflow = '';
+  currentPreviewId = null;
+}
+
+function goToPreviewDetail() {
+  const id = currentPreviewId;
+  closeBookPreviewModal();
+  if (id) location.hash = `#detail/${id}`;
+}
+
 /* ===== Genre Books Modal ===== */
 function openGenreBooksModal(year, genre, books) {
   document.getElementById('genre-modal-title').textContent = `${year}년 · ${genre} (${books.length}권)`;
@@ -626,7 +697,7 @@ function bindSummaryEvents(books) {
 
   document.querySelector('.tl-body')?.addEventListener('click', e => {
     const bar = e.target.closest('.tl-bar');
-    if (bar) location.hash = `#detail/${bar.dataset.id}`;
+    if (bar) openBookPreviewModal(bar.dataset.id);
   });
 
   document.querySelector('.genre-cards-row')?.addEventListener('click', e => {
@@ -1208,6 +1279,19 @@ function bindEvents() {
     const file = e.target.files[0];
     if (file) importJSON(file);
     e.target.value = '';
+  });
+
+  // 책 미리보기 모달
+  document.getElementById('btn-preview-close').addEventListener('click', closeBookPreviewModal);
+  document.getElementById('modal-book-preview').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeBookPreviewModal();
+  });
+  document.getElementById('btn-preview-detail').addEventListener('click', goToPreviewDetail);
+  document.getElementById('preview-cover-wrap').addEventListener('click', goToPreviewDetail);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (!document.getElementById('modal-book-preview').classList.contains('hidden')) closeBookPreviewModal();
   });
 
   // 장르 모달 닫기

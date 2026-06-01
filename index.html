@@ -326,6 +326,26 @@
     </div>
   </div>
 
+  <!-- 책 미리보기 모달 -->
+  <div id="modal-book-preview" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="preview-title">
+    <div class="modal-content book-preview-content">
+      <button class="modal-close" id="btn-preview-close" aria-label="닫기">✕</button>
+      <div class="preview-cover-wrap" id="preview-cover-wrap">
+        <img id="preview-cover-img" src="" alt="" class="preview-cover hidden" />
+        <div id="preview-cover-placeholder" class="preview-cover-placeholder hidden">📗</div>
+      </div>
+      <div class="preview-info">
+        <div class="preview-genre-wrap" id="preview-genre-wrap"></div>
+        <h3 class="preview-title" id="preview-title"></h3>
+        <p class="preview-author" id="preview-author"></p>
+        <p class="preview-publisher" id="preview-publisher"></p>
+        <div class="preview-rating" id="preview-rating"></div>
+        <p class="preview-period" id="preview-period"></p>
+      </div>
+      <button class="btn btn-accent preview-detail-btn" id="btn-preview-detail">상세 보기</button>
+    </div>
+  </div>
+
   <!-- 장르 책 목록 모달 -->
   <div id="modal-genre-books" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="genre-modal-title">
     <div class="modal-content genre-books-modal-content">

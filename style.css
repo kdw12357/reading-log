@@ -1246,3 +1246,93 @@ img { max-width: 100%; display: block; }
 .genre-books-modal-content .form-title {
   margin-bottom: 20px;
 }
+
+/* ===== 책 미리보기 모달 ===== */
+.book-preview-content {
+  max-width: 360px;
+  text-align: center;
+  padding: 28px 24px 24px;
+}
+
+.preview-cover-wrap {
+  width: 180px;
+  aspect-ratio: 2/3;
+  margin: 0 auto 20px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface-alt);
+  box-shadow: 0 8px 28px rgba(139, 111, 71, 0.28);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.preview-cover-wrap:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 36px rgba(139, 111, 71, 0.38);
+}
+
+.preview-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.preview-cover-placeholder {
+  font-size: 5rem;
+  opacity: 0.35;
+}
+
+.preview-info {
+  margin-bottom: 20px;
+}
+
+.preview-genre-wrap {
+  margin-bottom: 10px;
+}
+
+.preview-genre-badge {
+  font-size: 0.78rem;
+  padding: 3px 10px;
+}
+
+.preview-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+
+.preview-author {
+  font-size: 0.9rem;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+
+.preview-publisher {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.preview-rating {
+  font-size: 1.15rem;
+  color: var(--accent);
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+
+.preview-period {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.preview-detail-btn {
+  width: 100%;
+  padding: 12px;
+  font-size: 0.95rem;
+}
