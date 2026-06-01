@@ -1095,8 +1095,7 @@ img { max-width: 100%; display: block; }
 }
 
 .btn-hamburger {
-  padding: 6px 10px;
-  line-height: 1;
+  padding: 9px 10px;
 }
 
 .hamburger-icon {
