@@ -64,6 +64,7 @@ img { max-width: 100%; display: block; }
 
 .header-actions {
   display: flex;
+  align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
@@ -1092,6 +1093,8 @@ img { max-width: 100%; display: block; }
 /* ===== 햄버거 메뉴 & 드롭다운 ===== */
 .more-menu-wrap {
   position: relative;
+  display: flex;
+  align-items: center;
 }
 
 #btn-add-book,
@@ -1099,6 +1102,8 @@ img { max-width: 100%; display: block; }
   height: 34px;
   padding-top: 0;
   padding-bottom: 0;
+  line-height: 1;
+  vertical-align: middle;
 }
 
 .btn-hamburger {
