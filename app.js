@@ -167,6 +167,19 @@ async function saveBooksAndSync(books) {
   }
 }
 
+/* ===== Genre Books Modal ===== */
+function openGenreBooksModal(year, genre, books) {
+  document.getElementById('genre-modal-title').textContent = `${year}년 · ${genre} (${books.length}권)`;
+  document.getElementById('genre-books-grid').innerHTML = books.map(book => bookCard(book)).join('');
+  document.getElementById('modal-genre-books').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeGenreBooksModal() {
+  document.getElementById('modal-genre-books').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
 /* ===== Settings Modal ===== */
 function openSettingsModal() {
   document.getElementById('input-sync-secret').value = getSyncSecret();
@@ -200,6 +213,7 @@ function showToast(msg) {
 let currentSummaryYear = new Date().getFullYear();
 let currentTimelineYear = new Date().getFullYear();
 let currentTimelineMonth = new Date().getMonth() + 1;
+let currentGalleryFilter = 'all';
 
 /* ===== Router ===== */
 function route() {
@@ -246,6 +260,27 @@ function closeFormModal() {
   document.body.style.overflow = '';
 }
 
+/* ===== Book Status ===== */
+function getBookStatus(book) {
+  if (book.status) return book.status;
+  if (book.startDate && book.endDate) return 'done';
+  if (book.startDate) return 'reading';
+  return 'want';
+}
+
+function migrateBookStatuses() {
+  const books = loadBooks();
+  let changed = false;
+  const updated = books.map(book => {
+    if (!book.status) {
+      changed = true;
+      return { ...book, status: getBookStatus(book) };
+    }
+    return book;
+  });
+  if (changed) saveBooks(updated);
+}
+
 /* ===== Gallery View ===== */
 function getBookYear(book) {
   const d = book.endDate || book.startDate;
@@ -254,17 +289,42 @@ function getBookYear(book) {
 
 function renderGallery() {
   showView('view-gallery');
-  const books = loadBooks();
+  const allBooks = loadBooks();
+  const tabsEl = document.getElementById('gallery-filter-tabs');
   const container = document.getElementById('gallery-container');
   const empty = document.getElementById('gallery-empty');
 
-  if (books.length === 0) {
+  if (allBooks.length === 0) {
+    tabsEl.innerHTML = '';
     container.innerHTML = '';
     empty.classList.remove('hidden');
     return;
   }
 
   empty.classList.add('hidden');
+
+  const counts = {
+    all: allBooks.length,
+    want: allBooks.filter(b => getBookStatus(b) === 'want').length,
+    reading: allBooks.filter(b => getBookStatus(b) === 'reading').length,
+    done: allBooks.filter(b => getBookStatus(b) === 'done').length,
+  };
+
+  renderGalleryFilterTabs(counts);
+
+  const books = currentGalleryFilter === 'all'
+    ? allBooks
+    : allBooks.filter(b => getBookStatus(b) === currentGalleryFilter);
+
+  if (books.length === 0) {
+    const filterLabels = { want: '읽을 책', reading: '읽는 중', done: '읽은 책' };
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📖</div>
+        <p class="empty-title">${filterLabels[currentGalleryFilter]} 상태의 책이 없어요</p>
+      </div>`;
+    return;
+  }
 
   const groups = books.reduce((acc, book) => {
     const year = getBookYear(book);
@@ -282,10 +342,11 @@ function renderGallery() {
   container.innerHTML = sortedYears.map(year => {
     const yearBooks = groups[year];
     const cards = yearBooks.map(book => bookCard(book)).join('');
+    const yearLabel = year === '날짜 미입력' ? '날짜 미입력' : `${year}년`;
     return `
       <div class="year-section">
         <h2 class="year-heading">
-          ${escapeHtml(year)}년
+          ${escapeHtml(yearLabel)}
           <span class="book-count">${yearBooks.length}권</span>
         </h2>
         <div class="book-grid">${cards}</div>
@@ -294,14 +355,47 @@ function renderGallery() {
   }).join('');
 }
 
+function renderGalleryFilterTabs(counts) {
+  const tabsEl = document.getElementById('gallery-filter-tabs');
+  if (!tabsEl) return;
+  const filters = [
+    { key: 'all', label: '전체' },
+    { key: 'want', label: '읽을 책' },
+    { key: 'reading', label: '읽는 중' },
+    { key: 'done', label: '읽은 책' },
+  ];
+  tabsEl.innerHTML = filters.map(({ key, label }) =>
+    `<button class="gallery-tab${currentGalleryFilter === key ? ' active' : ''}" data-filter="${key}">
+      ${label} <span class="gallery-tab-count">${counts[key]}</span>
+    </button>`
+  ).join('');
+
+  tabsEl.querySelectorAll('.gallery-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentGalleryFilter = btn.dataset.filter;
+      renderGallery();
+    });
+  });
+}
+
 function bookCard(book) {
+  const status = getBookStatus(book);
+  const statusBadge = status === 'reading'
+    ? '<div class="status-badge status-reading">읽는 중</div>'
+    : status === 'want'
+    ? '<div class="status-badge status-want">읽을 책</div>'
+    : '';
+
   const cover = book.coverImage
     ? `<img src="${book.coverImage}" alt="${escapeHtml(book.title)}" loading="lazy" />`
     : `<div class="book-card-cover-placeholder">📗</div>`;
 
   return `
     <div class="book-card" data-id="${book.id}" role="button" tabindex="0" aria-label="${escapeHtml(book.title)}">
-      <div class="book-card-cover">${cover}</div>
+      <div class="book-card-cover">
+        ${cover}
+        ${statusBadge}
+      </div>
       <div class="book-card-info">
         <div class="book-card-title">${escapeHtml(book.title)}</div>
         <div class="book-card-author">${escapeHtml(book.author || '')}</div>
@@ -378,7 +472,7 @@ function renderSummaryStatsHTML(allYears, yearBooks) {
   const genreCards = sorted.map(([genre, count]) => {
     const color = getGenreColor(genre);
     return `
-      <div class="genre-card" style="background:${color.bg};color:${color.text};">
+      <div class="genre-card" data-genre="${escapeHtml(genre)}" role="button" tabindex="0" style="background:${color.bg};color:${color.text};">
         <span class="genre-card-name">${escapeHtml(genre)}</span>
         <span class="genre-card-count">${count}</span>
       </div>`;
@@ -534,6 +628,27 @@ function bindSummaryEvents(books) {
     const bar = e.target.closest('.tl-bar');
     if (bar) location.hash = `#detail/${bar.dataset.id}`;
   });
+
+  document.querySelector('.genre-cards-row')?.addEventListener('click', e => {
+    const card = e.target.closest('[data-genre]');
+    if (!card) return;
+    const genre = card.dataset.genre;
+    const books = loadBooks().filter(b =>
+      getBookYear(b) === String(currentSummaryYear) && (b.genre || '기타') === genre
+    );
+    openGenreBooksModal(currentSummaryYear, genre, books);
+  });
+
+  document.querySelector('.genre-cards-row')?.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const card = e.target.closest('[data-genre]');
+    if (!card) return;
+    const genre = card.dataset.genre;
+    const books = loadBooks().filter(b =>
+      getBookYear(b) === String(currentSummaryYear) && (b.genre || '기타') === genre
+    );
+    openGenreBooksModal(currentSummaryYear, genre, books);
+  });
 }
 
 /* ===== Form View ===== */
@@ -559,6 +674,7 @@ function renderForm(editId) {
   resetModalSearch();
   currentRating = null;
   updateRatingDisplay();
+  updateFormFieldVisibility('done');
 
   if (editId) {
     const books = loadBooks();
@@ -583,6 +699,11 @@ function renderForm(editId) {
 
     currentRating = book.rating || null;
     updateRatingDisplay();
+
+    const bookStatus = book.status || getBookStatus(book);
+    const statusRadio = form.querySelector(`input[name="status"][value="${bookStatus}"]`);
+    if (statusRadio) statusRadio.checked = true;
+    updateFormFieldVisibility(bookStatus);
 
     if (book.coverImage) {
       currentCoverBase64 = book.coverImage;
@@ -613,6 +734,25 @@ function hideCoverPreview() {
   placeholder.classList.remove('hidden');
   removeBtn.classList.add('hidden');
   currentCoverBase64 = null;
+}
+
+function updateFormFieldVisibility(status) {
+  const datesSection = document.getElementById('dates-section');
+  const endDateGroup = document.getElementById('end-date-group');
+  const ratingSection = document.getElementById('rating-section');
+
+  if (status === 'want') {
+    datesSection.classList.add('hidden');
+    ratingSection.classList.add('hidden');
+  } else if (status === 'reading') {
+    datesSection.classList.remove('hidden');
+    endDateGroup.classList.add('hidden');
+    ratingSection.classList.add('hidden');
+  } else {
+    datesSection.classList.remove('hidden');
+    endDateGroup.classList.remove('hidden');
+    ratingSection.classList.remove('hidden');
+  }
 }
 
 /* ===== Detail View ===== */
@@ -905,18 +1045,20 @@ function bindEvents() {
     const books = loadBooks();
     const editId = document.getElementById('book-id').value;
 
+    const selectedStatus = document.querySelector('input[name="status"]:checked')?.value || 'done';
     const bookData = {
       title,
       author: document.getElementById('input-author').value.trim(),
       publisher: document.getElementById('input-publisher').value.trim(),
       genre: document.getElementById('input-genre').value,
-      startDate: document.getElementById('input-start-date').value,
-      endDate: document.getElementById('input-end-date').value,
+      status: selectedStatus,
+      startDate: selectedStatus !== 'want' ? document.getElementById('input-start-date').value : '',
+      endDate: selectedStatus === 'done' ? document.getElementById('input-end-date').value : '',
       ownership: document.querySelector('input[name="ownership"]:checked').value,
       bookType: document.querySelector('input[name="bookType"]:checked').value,
       review: document.getElementById('input-review').value,
       coverImage: currentCoverBase64 || null,
-      rating: currentRating || null,
+      rating: selectedStatus === 'done' ? (currentRating || null) : null,
     };
 
     if (editId) {
@@ -945,6 +1087,12 @@ function bindEvents() {
     hideCoverPreview();
     currentRating = null;
     updateRatingDisplay();
+    updateFormFieldVisibility('done');
+  });
+
+  // 독서 상태 라디오 변경
+  document.querySelectorAll('input[name="status"]').forEach(radio => {
+    radio.addEventListener('change', () => updateFormFieldVisibility(radio.value));
   });
 
   // 모달 닫기 (✕ 버튼, 취소 버튼, 배경 클릭)
@@ -952,6 +1100,27 @@ function bindEvents() {
   document.getElementById('btn-cancel').addEventListener('click', closeFormModal);
   document.getElementById('modal-form').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) closeFormModal();
+  });
+
+  // 햄버거 메뉴 드롭다운
+  const moreMenu = document.getElementById('btn-more-menu');
+  const moreDropdown = document.getElementById('more-dropdown');
+
+  moreMenu.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = !moreDropdown.classList.contains('hidden');
+    moreDropdown.classList.toggle('hidden', isOpen);
+    moreMenu.setAttribute('aria-expanded', String(!isOpen));
+  });
+
+  moreDropdown.addEventListener('click', () => {
+    moreDropdown.classList.add('hidden');
+    moreMenu.setAttribute('aria-expanded', 'false');
+  });
+
+  document.addEventListener('click', () => {
+    moreDropdown.classList.add('hidden');
+    moreMenu.setAttribute('aria-expanded', 'false');
   });
 
   // + 책 등록 버튼 (헤더), 빈 상태 버튼
@@ -1041,6 +1210,19 @@ function bindEvents() {
     e.target.value = '';
   });
 
+  // 장르 모달 닫기
+  document.getElementById('btn-genre-modal-close').addEventListener('click', closeGenreBooksModal);
+  document.getElementById('modal-genre-books').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeGenreBooksModal();
+  });
+  document.getElementById('genre-books-grid').addEventListener('click', (e) => {
+    const card = e.target.closest('.book-card');
+    if (card) {
+      closeGenreBooksModal();
+      location.hash = `#detail/${card.dataset.id}`;
+    }
+  });
+
   // 동기화 버튼
   document.getElementById('btn-sync').addEventListener('click', manualSync);
 
@@ -1093,6 +1275,7 @@ function kyoboSearch() {
 
 /* ===== 초기화 ===== */
 function init() {
+  migrateBookStatuses();
   bindEvents();
   route();
   startupSync();

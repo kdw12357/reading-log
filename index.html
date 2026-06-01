@@ -24,10 +24,18 @@
       </h1>
       <div class="header-actions">
         <button class="btn btn-accent btn-sm" id="btn-add-book">+ 책 등록</button>
-        <button class="btn btn-ghost btn-sm" id="btn-sync" title="지금 동기화">↻ 동기화</button>
-        <button class="btn btn-ghost btn-sm" id="btn-export">JSON 내보내기</button>
-        <button class="btn btn-ghost btn-sm" id="btn-import-trigger">JSON 가져오기</button>
-        <button class="btn btn-ghost btn-sm" id="btn-settings">⚙ 설정</button>
+        <div class="more-menu-wrap">
+          <button class="btn btn-ghost btn-sm btn-hamburger" id="btn-more-menu" aria-label="메뉴" aria-expanded="false">
+            <span class="hamburger-icon"><span></span><span></span><span></span></span>
+          </button>
+          <div class="more-dropdown hidden" id="more-dropdown">
+            <button class="dropdown-item" id="btn-sync">↻ 동기화</button>
+            <button class="dropdown-item" id="btn-export">JSON 내보내기</button>
+            <button class="dropdown-item" id="btn-import-trigger">JSON 가져오기</button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item" id="btn-settings">⚙ 설정</button>
+          </div>
+        </div>
         <input type="file" id="import-file-input" accept=".json" hidden />
       </div>
     </div>
@@ -61,6 +69,7 @@
 
     <!-- 갤러리 뷰 -->
     <section id="view-gallery" class="view active">
+      <div class="gallery-filter-tabs" id="gallery-filter-tabs"></div>
       <div id="gallery-container">
         <!-- JS로 렌더링 -->
       </div>
@@ -191,14 +200,38 @@
           </div>
         </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label" for="input-start-date">독서 시작일</label>
-            <input type="date" id="input-start-date" class="form-input" />
+        <!-- 독서 상태 -->
+        <div class="form-group">
+          <label class="form-label">독서 상태</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="status" value="want" />
+              <span class="radio-btn"></span>
+              읽을 책
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="status" value="reading" />
+              <span class="radio-btn"></span>
+              읽는 중
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="status" value="done" checked />
+              <span class="radio-btn"></span>
+              읽은 책
+            </label>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="input-end-date">독서 종료일</label>
-            <input type="date" id="input-end-date" class="form-input" />
+        </div>
+
+        <div id="dates-section">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="input-start-date">독서 시작일</label>
+              <input type="date" id="input-start-date" class="form-input" />
+            </div>
+            <div class="form-group" id="end-date-group">
+              <label class="form-label" for="input-end-date">독서 종료일</label>
+              <input type="date" id="input-end-date" class="form-input" />
+            </div>
           </div>
         </div>
 
@@ -237,7 +270,7 @@
         </div>
 
         <!-- 별점 -->
-        <div class="form-group">
+        <div class="form-group" id="rating-section">
           <label class="form-label">별점</label>
           <div class="rating-input" id="rating-input">
             <span class="star-btn" data-value="1">★</span>
@@ -290,6 +323,15 @@
         <button type="button" class="btn btn-ghost" id="btn-clear-secret">키 삭제</button>
         <button type="button" class="btn btn-ghost" id="btn-settings-cancel">닫기</button>
       </div>
+    </div>
+  </div>
+
+  <!-- 장르 책 목록 모달 -->
+  <div id="modal-genre-books" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="genre-modal-title">
+    <div class="modal-content genre-books-modal-content">
+      <button class="modal-close" id="btn-genre-modal-close" aria-label="닫기">✕</button>
+      <h2 class="form-title" id="genre-modal-title"></h2>
+      <div class="book-grid" id="genre-books-grid"></div>
     </div>
   </div>
 

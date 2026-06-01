@@ -210,6 +210,7 @@ img { max-width: 100%; display: block; }
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 
 .book-card-cover img {
@@ -1086,4 +1087,162 @@ img { max-width: 100%; display: block; }
   .summary-timeline-section { padding: 16px; }
   .timeline-selectors { margin-left: 0; }
   .timeline-nav { gap: 6px; }
+}
+
+/* ===== 햄버거 메뉴 & 드롭다운 ===== */
+.more-menu-wrap {
+  position: relative;
+}
+
+.btn-hamburger {
+  padding: 6px 10px;
+  line-height: 1;
+}
+
+.hamburger-icon {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 18px;
+  height: 14px;
+}
+
+.hamburger-icon span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: currentColor;
+  border-radius: 1px;
+}
+
+.more-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-hover);
+  min-width: 160px;
+  z-index: 150;
+  overflow: hidden;
+}
+
+.dropdown-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 0.875rem;
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--transition);
+  white-space: nowrap;
+}
+
+.dropdown-item:hover { background: var(--surface-alt); }
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+/* ===== 갤러리 필터 탭 ===== */
+.gallery-filter-tabs {
+  display: flex;
+  overflow-x: auto;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--border);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.gallery-filter-tabs::-webkit-scrollbar { display: none; }
+
+.gallery-tab {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: color var(--transition), border-bottom-color var(--transition);
+  white-space: nowrap;
+}
+
+.gallery-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 700;
+}
+
+.gallery-tab:hover:not(.active) { color: var(--text); }
+
+.gallery-tab-count {
+  font-size: 0.75rem;
+  background: var(--surface-alt);
+  color: var(--muted);
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-weight: 400;
+}
+
+.gallery-tab.active .gallery-tab-count {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+/* ===== 책 카드 상태 배지 ===== */
+.status-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+}
+
+.status-reading {
+  background: rgba(184, 224, 184, 0.92);
+  color: #2e5a28;
+}
+
+.status-want {
+  background: rgba(188, 205, 232, 0.92);
+  color: #254a78;
+}
+
+/* ===== 장르 카드 호버 ===== */
+.genre-card {
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.genre-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(139, 111, 71, 0.2);
+}
+
+/* ===== 장르 책 목록 모달 ===== */
+.genre-books-modal-content {
+  max-width: 720px;
+}
+
+.genre-books-modal-content .form-title {
+  margin-bottom: 20px;
 }
