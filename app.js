@@ -1,5 +1,33 @@
 'use strict';
 
+/* ===== Image Compression ===== */
+async function compressImage(source) {
+  const url = URL.createObjectURL(source instanceof Blob ? source : new Blob([source]));
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = reject;
+      el.src = url;
+    });
+
+    const MAX = 1200;
+    let { naturalWidth: w, naturalHeight: h } = img;
+    if (w > MAX || h > MAX) {
+      if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+      else         { w = Math.round(w * MAX / h); h = MAX; }
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    return canvas.toDataURL('image/jpeg', 0.7);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 /* ===== Storage ===== */
 const STORAGE_KEY = 'reading-log';
 
@@ -1081,18 +1109,19 @@ async function selectSearchResult(item) {
   document.getElementById('modal-search-input').value = '';
 
   if (item.image) {
+    const statusEl = document.getElementById('modal-search-status');
+    statusEl.textContent = '이미지 처리 중...';
+    statusEl.classList.remove('hidden');
     try {
       const res = await fetch(item.image);
       const blob = await res.blob();
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        currentCoverBase64 = e.target.result;
-        showCoverPreview(currentCoverBase64);
-      };
-      reader.readAsDataURL(blob);
+      currentCoverBase64 = await compressImage(blob);
+      showCoverPreview(currentCoverBase64);
     } catch {
       currentCoverBase64 = item.image;
       showCoverPreview(item.image);
+    } finally {
+      statusEl.classList.add('hidden');
     }
   }
 }
@@ -1146,16 +1175,27 @@ function bindEvents() {
   const coverInput = document.getElementById('cover-input');
 
   coverArea.addEventListener('click', () => coverInput.click());
-  coverInput.addEventListener('change', (e) => {
+  coverInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      currentCoverBase64 = ev.target.result;
-      showCoverPreview(currentCoverBase64);
-    };
-    reader.readAsDataURL(file);
     e.target.value = '';
+
+    const placeholder = document.getElementById('cover-placeholder');
+    const origText = placeholder.querySelector('.upload-text')?.textContent;
+    if (placeholder.querySelector('.upload-text')) {
+      placeholder.querySelector('.upload-text').textContent = '이미지 처리 중...';
+    }
+
+    try {
+      currentCoverBase64 = await compressImage(file);
+      showCoverPreview(currentCoverBase64);
+    } catch {
+      showToast('이미지를 처리하지 못했습니다.');
+    } finally {
+      if (placeholder.querySelector('.upload-text') && origText) {
+        placeholder.querySelector('.upload-text').textContent = origText;
+      }
+    }
   });
 
   document.getElementById('btn-remove-cover').addEventListener('click', () => {
