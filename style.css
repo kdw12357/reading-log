@@ -1440,9 +1440,14 @@ img { max-width: 100%; display: block; }
 
 .book-detail-cover {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
+  max-height: 100%;
+  object-fit: contain;
   display: block;
+  padding: 20px;
+  background: #F5EFE6;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  box-sizing: border-box;
 }
 
 .book-detail-cover-placeholder {
@@ -1475,10 +1480,20 @@ img { max-width: 100%; display: block; }
   border-top: 2px solid var(--border);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 600px) {
+  .book-detail-top {
+    flex-direction: column;
+  }
   .book-detail-cover-col {
-    width: 30%;
-    min-height: 200px;
+    width: 100%;
+    min-height: unset;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .book-detail-cover {
+    width: 100%;
+    max-height: 320px;
+    margin: 0 auto;
+    display: block;
   }
   .book-detail-info-col { padding: 16px 12px 16px; }
   .book-detail-review-section { padding: 14px 12px 18px; }
