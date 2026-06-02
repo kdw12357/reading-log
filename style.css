@@ -1141,7 +1141,9 @@ img { max-width: 100%; display: block; }
 }
 
 .dropdown-item {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   text-align: left;
   padding: 10px 16px;
