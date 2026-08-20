@@ -120,6 +120,8 @@ img { max-width: 100%; display: block; }
 }
 
 .btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:disabled:active { transform: none; }
 
 .btn-accent {
   background: var(--accent);
@@ -967,6 +969,13 @@ img { max-width: 100%; display: block; }
   width: auto;
   padding: 6px 28px 6px 12px;
   font-size: 0.875rem;
+}
+
+.summary-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .stats-total-display {

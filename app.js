@@ -636,11 +636,16 @@ function renderSummaryStatsHTML(allYears, yearBooks) {
       </div>`;
   }).join('');
 
+  const eligibleCount = yearBooks.filter(b => getBookStatus(b) !== 'want').length;
+
   return `
     <div class="summary-stats-section">
       <div class="summary-section-header">
         <h2 class="summary-section-title">연간 독서 통계</h2>
-        <select class="form-input summary-year-select" id="stats-year-select">${yearOptions}</select>
+        <div class="summary-header-actions">
+          <select class="form-input summary-year-select" id="stats-year-select">${yearOptions}</select>
+          <button type="button" class="btn btn-accent btn-sm" id="btn-save-summary-image"${eligibleCount === 0 ? ' disabled' : ''}>📸 이미지 저장</button>
+        </div>
       </div>
       <div class="stats-year-header">${currentSummaryYear}년 · 총 <strong>${yearBooks.length}권</strong> 읽음</div>
       ${sorted.length > 0
@@ -760,6 +765,10 @@ function bindSummaryEvents(books) {
     renderSummary();
   });
 
+  document.getElementById('btn-save-summary-image')?.addEventListener('click', () => {
+    exportSummaryImage(currentSummaryYear);
+  });
+
   document.getElementById('btn-prev-month')?.addEventListener('click', () => {
     currentTimelineMonth--;
     if (currentTimelineMonth < 1) { currentTimelineMonth = 12; currentTimelineYear--; }
@@ -807,6 +816,185 @@ function bindSummaryEvents(books) {
     );
     openGenreBooksModal(currentSummaryYear, genre, books);
   });
+}
+
+/* ===== 독서결산 이미지 저장 ===== */
+function truncateForCapture(str, maxChars) {
+  if (!str) return '';
+  return str.length > maxChars ? `${str.slice(0, maxChars - 1)}…` : str;
+}
+
+function formatYM(d) {
+  if (!d) return '';
+  const [y, m] = d.split('-');
+  return `${y}.${m}`;
+}
+
+function formatPeriodYM(book) {
+  const status = getBookStatus(book);
+  const start = formatYM(book.startDate);
+  const end = formatYM(book.endDate);
+  if (status === 'reading') return start ? `${start} ~` : '-';
+  if (start && end) return `${start} ~ ${end}`;
+  if (end) return `~ ${end}`;
+  if (start) return `${start} ~`;
+  return '-';
+}
+
+async function toDataURLSafe(url) {
+  if (!url) return null;
+  if (url.startsWith('data:')) return url;
+  try {
+    const res = await fetch(url, { mode: 'cors' });
+    if (!res.ok) throw new Error('fetch failed');
+    const blob = await res.blob();
+    return await compressImage(blob);
+  } catch {
+    return null;
+  }
+}
+
+function summaryImageGenreCard(genre, count, color) {
+  return `
+    <div style="min-width:88px;padding:14px 16px;border-radius:14px;display:flex;flex-direction:column;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(139,111,71,0.12);border:1px solid rgba(0,0,0,0.06);background:${color.bg};color:${color.text};">
+      <span style="font-size:13px;font-weight:600;opacity:0.85;white-space:nowrap;">${escapeHtml(genre)}</span>
+      <span style="font-size:32px;font-weight:700;line-height:1;">${count}</span>
+    </div>`;
+}
+
+function summaryImageBookCard(book, coverSrc) {
+  const status = getBookStatus(book);
+  const statusInfo = status === 'reading'
+    ? { label: '읽는 중', bg: 'rgba(245,158,11,0.90)' }
+    : { label: '읽은 책', bg: 'rgba(16,185,129,0.88)' };
+  const genreColor = book.genre ? getGenreColor(book.genre) : null;
+
+  const coverHtml = coverSrc
+    ? `<img src="${coverSrc}" style="width:100%;height:100%;object-fit:cover;display:block;" />`
+    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:40px;opacity:0.4;">📗</div>`;
+
+  return `
+    <div style="background:#ffffff;border:1px solid #e8ddd0;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(139,111,71,0.1);">
+      <div style="position:relative;aspect-ratio:2/3;background:#f5f0e8;">
+        ${coverHtml}
+        <div style="position:absolute;top:6px;left:6px;font-size:12px;font-weight:700;padding:3px 8px;border-radius:10px;color:#fff;background:${statusInfo.bg};">${statusInfo.label}</div>
+      </div>
+      <div style="padding:12px;">
+        <div style="font-size:15px;font-weight:600;color:#3d2b1f;line-height:1.3;height:39px;overflow:hidden;">${escapeHtml(truncateForCapture(book.title, 28))}</div>
+        <div style="font-size:13px;color:#9e8272;margin-top:4px;white-space:nowrap;overflow:hidden;">${escapeHtml(truncateForCapture(book.author || '', 16))}</div>
+        ${genreColor ? `<span style="display:inline-block;margin-top:6px;font-size:12px;background:${genreColor.bg};color:${genreColor.text};padding:2px 7px;border-radius:10px;">${escapeHtml(book.genre)}</span>` : ''}
+        ${book.rating ? `<div style="margin-top:5px;font-size:15px;color:#8b6f47;letter-spacing:1px;">${'★'.repeat(book.rating)}${'☆'.repeat(5 - book.rating)}</div>` : ''}
+        <div style="margin-top:6px;font-size:12px;color:#9e8272;">${formatPeriodYM(book)}</div>
+      </div>
+    </div>`;
+}
+
+function buildSummaryImageLayout(year, books, coverMap) {
+  const genreCounts = {};
+  books.forEach(b => {
+    const g = b.genre || '기타';
+    genreCounts[g] = (genreCounts[g] || 0) + 1;
+  });
+  const sortedGenres = Object.entries(genreCounts)
+    .filter(([, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1]);
+
+  const genreCardsHtml = sortedGenres
+    .map(([genre, count]) => summaryImageGenreCard(genre, count, getGenreColor(genre)))
+    .join('');
+
+  const bookCardsHtml = books
+    .map(book => summaryImageBookCard(book, coverMap.get(book.id)))
+    .join('');
+
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`;
+
+  const wrap = document.createElement('div');
+  wrap.style.position = 'fixed';
+  wrap.style.left = '-9999px';
+  wrap.style.top = '0';
+  wrap.style.zIndex = '-1';
+  wrap.innerHTML = `
+    <div style="width:1080px;background:#f5f0e8;font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:#3d2b1f;padding:60px 50px;">
+      <div style="text-align:center;margin-bottom:48px;">
+        <div style="font-size:44px;font-weight:800;color:#8b6f47;">${escapeHtml(String(year))}년 독서 결산</div>
+        <div style="font-size:22px;color:#9e8272;margin-top:12px;">총 ${books.length}권</div>
+      </div>
+      ${sortedGenres.length > 0 ? `
+      <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:48px;">
+        ${genreCardsHtml}
+      </div>` : ''}
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">
+        ${bookCardsHtml}
+      </div>
+      <div style="text-align:center;margin-top:48px;font-size:16px;color:#9e8272;">
+        독서 기록 · ${dateStr}
+      </div>
+    </div>`;
+  return wrap;
+}
+
+async function exportSummaryImage(year) {
+  if (typeof html2canvas === 'undefined') {
+    showToast('이미지 저장 기능은 온라인 상태에서만 사용할 수 있습니다.');
+    return;
+  }
+
+  const books = loadBooks().filter(b =>
+    getBookYear(b) === String(year) && getBookStatus(b) !== 'want'
+  );
+
+  if (books.length === 0) {
+    showToast('이 해에 읽은 책이 없어 이미지를 만들 수 없습니다.');
+    return;
+  }
+
+  const btn = document.getElementById('btn-save-summary-image');
+  if (btn) btn.disabled = true;
+  showToast('이미지 생성 중...');
+
+  let layoutEl = null;
+  try {
+    const sorted = [...books].sort((a, b) => {
+      const da = a.endDate || a.startDate || '';
+      const db = b.endDate || b.startDate || '';
+      return da.localeCompare(db);
+    });
+
+    const coverMap = new Map();
+    for (const book of sorted) {
+      coverMap.set(book.id, await toDataURLSafe(book.coverImage));
+    }
+
+    layoutEl = buildSummaryImageLayout(year, sorted, coverMap);
+    document.body.appendChild(layoutEl);
+
+    const canvas = await html2canvas(layoutEl.firstElementChild, {
+      useCORS: true,
+      backgroundColor: '#f5f0e8',
+      width: 1080,
+      windowWidth: 1080,
+      scale: 2,
+    });
+
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('캔버스 변환 실패');
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `독서결산_${year}년_${today()}.png`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showToast('이미지가 저장되었습니다. Download 폴더에서 확인해주세요.');
+  } catch (err) {
+    showToast('이미지 생성에 실패했습니다. 다시 시도해주세요.');
+  } finally {
+    if (layoutEl) layoutEl.remove();
+    if (btn) btn.disabled = false;
+  }
 }
 
 /* ===== Form View ===== */
