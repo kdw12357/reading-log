@@ -841,14 +841,21 @@ function formatPeriodYM(book) {
   return '-';
 }
 
+const IMAGE_PROXY_URL = 'https://reading-proxy.kdw12357.workers.dev/img?url=';
+
 async function toDataURLSafe(url) {
   if (!url) return null;
   if (url.startsWith('data:')) return url;
   try {
-    const res = await fetch(url, { mode: 'cors' });
+    const res = await fetch(`${IMAGE_PROXY_URL}${encodeURIComponent(url)}`);
     if (!res.ok) throw new Error('fetch failed');
     const blob = await res.blob();
-    return await compressImage(blob);
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
   } catch {
     return null;
   }
@@ -856,9 +863,9 @@ async function toDataURLSafe(url) {
 
 function summaryImageGenreCard(genre, count, color) {
   return `
-    <div style="min-width:88px;padding:14px 16px;border-radius:14px;display:flex;flex-direction:column;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(139,111,71,0.12);border:1px solid rgba(0,0,0,0.06);background:${color.bg};color:${color.text};">
-      <span style="font-size:13px;font-weight:600;opacity:0.85;white-space:nowrap;">${escapeHtml(genre)}</span>
-      <span style="font-size:32px;font-weight:700;line-height:1;">${count}</span>
+    <div style="min-width:100px;min-height:92px;padding:16px 18px 12px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;box-shadow:0 2px 8px rgba(139,111,71,0.12);border:1px solid rgba(0,0,0,0.06);background:${color.bg};color:${color.text};">
+      <span style="font-size:16px;font-weight:700;line-height:1.4;opacity:0.85;white-space:nowrap;">${escapeHtml(genre)}</span>
+      <span style="font-size:32px;font-weight:700;line-height:1.4;">${count}</span>
     </div>`;
 }
 
@@ -877,14 +884,14 @@ function summaryImageBookCard(book, coverSrc) {
     <div style="background:#ffffff;border:1px solid #e8ddd0;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(139,111,71,0.1);">
       <div style="position:relative;aspect-ratio:2/3;background:#f5f0e8;">
         ${coverHtml}
-        <div style="position:absolute;top:6px;left:6px;font-size:12px;font-weight:700;padding:3px 8px;border-radius:10px;color:#fff;background:${statusInfo.bg};">${statusInfo.label}</div>
+        <div style="position:absolute;top:6px;left:6px;font-size:12px;font-weight:700;line-height:1;padding:5px 8px 3px;border-radius:10px;color:#fff;background:${statusInfo.bg};">${statusInfo.label}</div>
       </div>
       <div style="padding:12px;">
         <div style="font-size:15px;font-weight:600;color:#3d2b1f;line-height:1.3;height:39px;overflow:hidden;">${escapeHtml(truncateForCapture(book.title, 28))}</div>
-        <div style="font-size:13px;color:#9e8272;margin-top:4px;white-space:nowrap;overflow:hidden;">${escapeHtml(truncateForCapture(book.author || '', 16))}</div>
-        ${genreColor ? `<span style="display:inline-block;margin-top:6px;font-size:12px;background:${genreColor.bg};color:${genreColor.text};padding:2px 7px;border-radius:10px;">${escapeHtml(book.genre)}</span>` : ''}
-        ${book.rating ? `<div style="margin-top:5px;font-size:15px;color:#8b6f47;letter-spacing:1px;">${'★'.repeat(book.rating)}${'☆'.repeat(5 - book.rating)}</div>` : ''}
-        <div style="margin-top:6px;font-size:12px;color:#9e8272;">${formatPeriodYM(book)}</div>
+        <div style="font-size:13px;color:#9e8272;line-height:1.3;margin-top:4px;white-space:nowrap;overflow:hidden;">${escapeHtml(truncateForCapture(book.author || '', 16))}</div>
+        ${genreColor ? `<span style="display:inline-block;margin-top:6px;font-size:12px;line-height:1;background:${genreColor.bg};color:${genreColor.text};padding:4px 7px 2px;border-radius:10px;">${escapeHtml(book.genre)}</span>` : ''}
+        ${book.rating ? `<div style="margin-top:5px;font-size:15px;color:#8b6f47;letter-spacing:1px;line-height:1;transform:translateY(-1px);">${'★'.repeat(book.rating)}${'☆'.repeat(5 - book.rating)}</div>` : ''}
+        <div style="margin-top:6px;font-size:12px;color:#9e8272;line-height:1.3;">${formatPeriodYM(book)}</div>
       </div>
     </div>`;
 }
@@ -916,20 +923,24 @@ function buildSummaryImageLayout(year, books, coverMap) {
   wrap.style.top = '0';
   wrap.style.zIndex = '-1';
   wrap.innerHTML = `
-    <div style="width:1080px;background:#f5f0e8;font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:#3d2b1f;padding:60px 50px;">
-      <div style="text-align:center;margin-bottom:48px;">
-        <div style="font-size:44px;font-weight:800;color:#8b6f47;">${escapeHtml(String(year))}년 독서 결산</div>
-        <div style="font-size:22px;color:#9e8272;margin-top:12px;">총 ${books.length}권</div>
+    <div style="width:1080px;background:#f5f0e8;font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:#3d2b1f;line-height:1;">
+      <div style="background:#ede3d3;padding:60px 50px 40px;border-bottom:1px solid rgba(139,111,71,0.15);">
+        <div style="text-align:center;">
+          <div style="font-size:44px;font-weight:800;line-height:1.15;color:#8b6f47;">${escapeHtml(String(year))}년 독서 결산</div>
+          <div style="font-size:22px;line-height:1.3;color:#9e8272;margin-top:12px;">총 ${books.length}권</div>
+        </div>
+        ${sortedGenres.length > 0 ? `
+        <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:40px;">
+          ${genreCardsHtml}
+        </div>` : ''}
       </div>
-      ${sortedGenres.length > 0 ? `
-      <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:48px;">
-        ${genreCardsHtml}
-      </div>` : ''}
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">
-        ${bookCardsHtml}
-      </div>
-      <div style="text-align:center;margin-top:48px;font-size:16px;color:#9e8272;">
-        독서 기록 · ${dateStr}
+      <div style="padding:40px 50px 60px;">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">
+          ${bookCardsHtml}
+        </div>
+        <div style="text-align:center;margin-top:48px;font-size:16px;line-height:1.3;color:#9e8272;">
+          독서 기록 · ${dateStr}
+        </div>
       </div>
     </div>`;
   return wrap;
@@ -952,7 +963,6 @@ async function exportSummaryImage(year) {
 
   const btn = document.getElementById('btn-save-summary-image');
   if (btn) btn.disabled = true;
-  showToast('이미지 생성 중...');
 
   let layoutEl = null;
   try {
@@ -963,10 +973,13 @@ async function exportSummaryImage(year) {
     });
 
     const coverMap = new Map();
-    for (const book of sorted) {
+    for (let i = 0; i < sorted.length; i++) {
+      const book = sorted[i];
+      showToast(`이미지 준비 중... (${i + 1}/${sorted.length})`);
       coverMap.set(book.id, await toDataURLSafe(book.coverImage));
     }
 
+    showToast('이미지 생성 중...');
     layoutEl = buildSummaryImageLayout(year, sorted, coverMap);
     document.body.appendChild(layoutEl);
 
