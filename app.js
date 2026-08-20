@@ -863,9 +863,9 @@ async function toDataURLSafe(url) {
 
 function summaryImageGenreCard(genre, count, color) {
   return `
-    <div style="min-width:100px;padding:14px 16px 20px;border-radius:14px;display:flex;flex-direction:column;align-items:center;box-shadow:0 2px 8px rgba(139,111,71,0.12);border:1px solid rgba(0,0,0,0.06);background:${color.bg};color:${color.text};">
-      <span style="font-size:16px;font-weight:700;line-height:1.2;opacity:0.85;white-space:nowrap;">${escapeHtml(genre)}</span>
-      <span style="font-size:32px;font-weight:700;line-height:1.2;margin-top:6px;">${count}</span>
+    <div style="min-width:100px;height:auto;padding:10px 16px 24px;border-radius:14px;display:flex;flex-direction:column;align-items:center;box-shadow:0 2px 8px rgba(139,111,71,0.12);border:1px solid rgba(0,0,0,0.06);background:${color.bg};color:${color.text};">
+      <span style="font-size:16px;font-weight:700;line-height:1.1;margin:0;opacity:0.85;white-space:nowrap;">${escapeHtml(genre)}</span>
+      <span style="font-size:32px;font-weight:700;line-height:1.1;margin:0;margin-top:6px;">${count}</span>
     </div>`;
 }
 
@@ -884,12 +884,12 @@ function summaryImageBookCard(book, coverSrc) {
     <div style="background:#ffffff;border:1px solid #e8ddd0;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(139,111,71,0.1);">
       <div style="position:relative;aspect-ratio:2/3;background:#f5f0e8;">
         ${coverHtml}
-        <div style="position:absolute;top:6px;left:6px;display:inline-block;height:auto;font-size:12px;font-weight:700;line-height:1;padding:4px 10px 8px;border-radius:10px;color:#fff;background:${statusInfo.bg};overflow:visible;">${statusInfo.label}</div>
+        <div style="position:absolute;top:6px;left:6px;display:inline-block;height:auto;font-size:12px;font-weight:700;line-height:1;padding:2px 10px 10px;border-radius:10px;color:#fff;background:${statusInfo.bg};overflow:visible;">${statusInfo.label}</div>
       </div>
       <div style="padding:12px;">
         <div style="font-size:15px;font-weight:600;color:#3d2b1f;line-height:1.45;overflow:visible;padding-bottom:4px;">${escapeHtml(truncateForCapture(book.title, 26))}</div>
         <div style="font-size:13px;color:#9e8272;line-height:1.4;margin-top:4px;white-space:nowrap;overflow:visible;padding-bottom:4px;">${escapeHtml(truncateForCapture(book.author || '', 20))}</div>
-        ${genreColor ? `<span style="display:inline-block;height:auto;margin-top:6px;font-size:12px;line-height:1;background:${genreColor.bg};color:${genreColor.text};padding:4px 10px 8px;border-radius:10px;overflow:visible;">${escapeHtml(book.genre)}</span>` : ''}
+        ${genreColor ? `<span style="display:inline-block;height:auto;margin-top:6px;font-size:12px;line-height:1;background:${genreColor.bg};color:${genreColor.text};padding:2px 10px 10px;border-radius:10px;overflow:visible;">${escapeHtml(book.genre)}</span>` : ''}
         ${book.rating ? `<div style="display:block;margin-top:5px;font-size:15px;color:#8b6f47;letter-spacing:1px;line-height:1;padding-bottom:6px;">${'★'.repeat(book.rating)}${'☆'.repeat(5 - book.rating)}</div>` : ''}
         <div style="margin-top:6px;font-size:12px;color:#9e8272;line-height:1.3;">${formatPeriodYM(book)}</div>
       </div>
